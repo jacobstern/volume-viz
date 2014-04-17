@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/vert">
+        <file>firstpass.vert</file>
+        <file>screen.vert</file>
+    </qresource>
+    <qresource prefix="/frag">
+        <file>firstpass.frag</file>
+        <file>screen.frag</file>
+    </qresource>
+</RCC>
