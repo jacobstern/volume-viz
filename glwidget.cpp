@@ -240,10 +240,10 @@ void GLWidget::paintGL()
     // reset the view to the identity
     glLoadIdentity();
 
-    glScalef(3.0f, 3.0f, 3.0f);
-
     // move into the screen
     glTranslatef(0.0f, 0.0f, -3.0f);
+
+    glScalef(0.5f, 0.5f, 0.5f);
 
     // rotate the cube by the rotation value
     glRotatef(xRot / 20, 1.0f, 0.0f, 0.0f);
@@ -393,35 +393,35 @@ void GLWidget::drawProxyGeometry()
     // construct the cube
     glBegin(GL_QUADS);
 
-    glVertex3f(  0.5, -0.5, 0.5 );
-    glVertex3f(  0.5,  0.5, 0.5 );
-    glVertex3f( -0.5,  0.5, 0.5 );
-    glVertex3f( -0.5, -0.5, 0.5 );
+    glVertex3f(  1.0f, -1.0f, 1.0f );
+    glVertex3f(  1.0f,  1.0f, 1.0f );
+    glVertex3f( -1.0f,  1.0f, 1.0f );
+    glVertex3f( -1.0f, -1.0f, 1.0f );
 
-    glVertex3f( 0.5, -0.5, -0.5 );
-    glVertex3f( 0.5,  0.5, -0.5 );
-    glVertex3f( 0.5,  0.5,  0.5 );
-    glVertex3f( 0.5, -0.5,  0.5 );
+    glVertex3f( 1.0f, -1.0f, -1.0f );
+    glVertex3f( 1.0f,  1.0f, -1.0f );
+    glVertex3f( 1.0f,  1.0f,  1.0f );
+    glVertex3f( 1.0f, -1.0f,  1.0f );
 
-    glVertex3f( -0.5, -0.5,  0.5 );
-    glVertex3f( -0.5,  0.5,  0.5 );
-    glVertex3f( -0.5,  0.5, -0.5 );
-    glVertex3f( -0.5, -0.5, -0.5 );
+    glVertex3f( -1.0f, -1.0f,  1.0f );
+    glVertex3f( -1.0f,  1.0f,  1.0f );
+    glVertex3f( -1.0f,  1.0f, -1.0f );
+    glVertex3f( -1.0f, -1.0f, -1.0f );
 
-    glVertex3f(  0.5,  0.5,  0.5 );
-    glVertex3f(  0.5,  0.5, -0.5 );
-    glVertex3f( -0.5,  0.5, -0.5 );
-    glVertex3f( -0.5,  0.5,  0.5 );
+    glVertex3f(  1.0f,  1.0f,  1.0f );
+    glVertex3f(  1.0f,  1.0f, -1.0f );
+    glVertex3f( -1.0f,  1.0f, -1.0f );
+    glVertex3f( -1.0f,  1.0f,  1.0f );
 
-    glVertex3f(  0.5, -0.5, -0.5 );
-    glVertex3f(  0.5, -0.5,  0.5 );
-    glVertex3f( -0.5, -0.5,  0.5 );
-    glVertex3f( -0.5, -0.5, -0.5 );
+    glVertex3f(  1.0f, -1.0f, -1.0f );
+    glVertex3f(  1.0f, -1.0f,  1.0f );
+    glVertex3f( -1.0f, -1.0f,  1.0f );
+    glVertex3f( -1.0f, -1.0f, -1.0f );
 
-    glVertex3f( -0.5, -0.5, -0.5 );
-    glVertex3f( -0.5,  0.5, -0.5 );
-    glVertex3f(  0.5,  0.5, -0.5 );
-    glVertex3f(  0.5, -0.5, -0.5 );
+    glVertex3f( -1.0f, -1.0f, -1.0f );
+    glVertex3f( -1.0f,  1.0f, -1.0f );
+    glVertex3f(  1.0f,  1.0f, -1.0f );
+    glVertex3f(  1.0f, -1.0f, -1.0f );
 
     glEnd();
 
