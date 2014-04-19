@@ -81,6 +81,8 @@ GLWidget::GLWidget(QWidget *parent)
     yRot = 0;
     zRot = 0;
 
+    scaleFactor = 0.5;
+
     qtGreen = QColor::fromCmykF(0.40, 0.0, 1.0, 0.0);
     qtPurple = QColor::fromCmykF(0.39, 0.39, 0.0, 0.0);
 
@@ -89,6 +91,10 @@ GLWidget::GLWidget(QWidget *parent)
     }
 
     resultBuffer = 0;
+
+    camera = new Camera( 0 );
+    camera->setPosition( QVector3D(0, 0, -5.f) );
+    camera->lookAt( QVector3D(0, 0, 0) );
 }
 //! [0]
 
@@ -100,6 +106,8 @@ GLWidget::~GLWidget()
             delete framebuffers[i];
         }
     }
+
+    delete camera;
 }
 //! [1]
 
@@ -120,10 +128,11 @@ QSize GLWidget::sizeHint() const
 
 static void qNormalizeAngle(int &angle)
 {
-    while (angle < 0)
-        angle += 360 * 16;
-    while (angle > 360 * 16)
-        angle -= 360 * 16;
+//    while (angle < 0)
+//        angle += 360 * 16;
+//    while (angle > 360 * 16)
+//        angle -= 360 * 16;
+    angle = angle % (360 * 16);
 }
 
 //! [5]
@@ -237,18 +246,13 @@ void GLWidget::paintGL()
     int width = this->width(), height = this->height();
 
     glEnable(GL_CULL_FACE);
-    // reset the view to the identity
-    glLoadIdentity();
 
-    // move into the screen
-    glTranslatef(0.0f, 0.0f, -3.0f);
+    camera->updateView();
 
-    glScalef(0.5f, 0.5f, 0.5f);
-
-    // rotate the cube by the rotation value
-    glRotatef(xRot / 20, 1.0f, 0.0f, 0.0f);
-    glRotatef(yRot / 20, 0.0f, 1.0f, 0.0f);
-    glRotatef(zRot / 20, 0.0f, 0.0f, 1.0f);
+//    // rotate the cube by the rotation value
+//    glRotatef(xRot / 20, 1.0f, 0.0f, 0.0f);
+//    glRotatef(yRot / 20, 0.0f, 1.0f, 0.0f);
+//    glRotatef(zRot / 20, 0.0f, 0.0f, 1.0f);
 
     {
         QPainter frontFace(framebuffers[FRONT_FACE_BUFFER]);
@@ -279,7 +283,7 @@ void GLWidget::paintGL()
     glBindBuffer( GL_PIXEL_UNPACK_BUFFER, resultBuffer);
 
     // bind texture from PBO
-    glBindTexture(GL_TEXTURE_2D, resultTexture);
+    glBindTexture(GL_TEXTURE_2D, framebuffers[0]->texture());
 
     // Note: glTexSubImage2D will perform a format conversion if the
     // buffer is a different format from the texture. We created the
@@ -310,10 +314,6 @@ void GLWidget::resizeGL(int width, int height)
     glLoadIdentity();
 
     perspectiveFrustum(45.0f, (GLfloat) width / (GLfloat) height, 0.1f, 100.0f);
-
-    // Reset the Model View matrix
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
 
     QGLFramebufferObjectFormat format;
     format.setAttachment(QGLFramebufferObject::Depth);
@@ -454,3 +454,8 @@ void GLWidget::drawTextureQuad()
 }
 
 //! [12]
+
+void GLWidget::wheelEvent(QWheelEvent *event)
+{
+    scaleFactor *= 1 + event->delta() / 300.f;
+}

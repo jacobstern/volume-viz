@@ -46,6 +46,8 @@
 #include <QGLFramebufferObject>
 #include <QGLPixelBuffer>
 
+#include "camera.h"
+
 class QtLogo;
 
 //! [0]
@@ -82,10 +84,13 @@ protected:
     void resizeGL(int width, int height);
     void mousePressEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
+    void wheelEvent(QWheelEvent *event);
 //! [2]
 
 //! [3]
 private:
+    Camera *camera;
+
     void drawProxyGeometry();
     void drawTextureQuad();
 
@@ -93,6 +98,7 @@ private:
     int xRot;
     int yRot;
     int zRot;
+    float scaleFactor;
     QPoint lastPos;
     QColor qtGreen;
     QColor qtPurple;
