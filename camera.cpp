@@ -50,7 +50,8 @@ void Camera::setUp(QVector3D vector)
 
 void Camera::updateView()
 {
-    QVector3D side = QVector3D::crossProduct(look, up).normalized();
+    QVector3D side = QVector3D::crossProduct(look, up).normalized(),
+              up = QVector3D::crossProduct(side, look).normalized();
 
     GLfloat m[4][4];
 
@@ -70,8 +71,6 @@ void Camera::updateView()
 
     glMatrixMode(GL_MODELVIEW);
 
-    glLoadIdentity();
-
-    glMultMatrixf(&m[0][0]);
+    glLoadMatrixf(&m[0][0]);
     glTranslatef(-position.x(), -position.y(), -position.z());
 }

@@ -93,7 +93,7 @@ GLWidget::GLWidget(QWidget *parent)
     resultBuffer = 0;
 
     camera = new Camera( 0 );
-    camera->setPosition( QVector3D(0, 0, -5.f) );
+    camera->setPosition( QVector3D(0, 0, -4.f) );
     camera->lookAt( QVector3D(0, 0, 0) );
 }
 //! [0]
@@ -283,7 +283,8 @@ void GLWidget::paintGL()
     glBindBuffer( GL_PIXEL_UNPACK_BUFFER, resultBuffer);
 
     // bind texture from PBO
-    glBindTexture(GL_TEXTURE_2D, framebuffers[0]->texture());
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, resultBuffer);
 
     // Note: glTexSubImage2D will perform a format conversion if the
     // buffer is a different format from the texture. We created the
@@ -314,6 +315,8 @@ void GLWidget::resizeGL(int width, int height)
     glLoadIdentity();
 
     perspectiveFrustum(45.0f, (GLfloat) width / (GLfloat) height, 0.1f, 100.0f);
+
+    glMatrixMode(GL_MODELVIEW);
 
     QGLFramebufferObjectFormat format;
     format.setAttachment(QGLFramebufferObject::Depth);
@@ -375,11 +378,23 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
     int dy = event->y() - lastPos.y();
 
     if (event->buttons() & Qt::LeftButton) {
-        setXRotation(xRot + 8 * dy);
-        setYRotation(yRot + 8 * dx);
-    } else if (event->buttons() & Qt::RightButton) {
-        setXRotation(xRot + 8 * dy);
-        setZRotation(zRot + 8 * dx);
+        // Stolen from CS224 Chameleon
+        QVector3D position = camera->getPosition();
+
+        float r = position.length(),
+              theta = acos( double(position.y() / r) ) - dy / 200.f,
+              phi = atan2( position.z(), position.x() ) + dx / 200.f;
+
+        if (theta < 0.1f)
+            theta = 0.1f;
+
+        if (theta > M_PI - 0.1f)
+            theta = M_PI - 0.1f;
+
+        camera->setPosition( QVector3D( r * sin(theta) * cos(phi), r * cos(theta), r * sin(theta) * sin(phi) ) );
+        camera->lookAt( QVector3D(0.f, 0.f, 0.f) );
+
+        update();
     }
     lastPos = event->pos();
 }
@@ -457,5 +472,13 @@ void GLWidget::drawTextureQuad()
 
 void GLWidget::wheelEvent(QWheelEvent *event)
 {
-    scaleFactor *= 1 + event->delta() / 300.f;
+    int delta = event->delta();
+
+    if (delta != 0) {
+        QVector3D look = camera->getLook(),
+                position = camera->getPosition();
+        camera->setPosition( position + look *  (delta / 200.f) );
+
+        update();
+    }
 }
