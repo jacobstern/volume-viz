@@ -32,7 +32,7 @@ float4 sampleVolume(float3 pos)
 __global__
 void kernel(void *buffer, int width, int height)
 {
-    const float stepSize = 0.01f;
+    const float stepSize = 0.02f;
     const int maxIters = 200;
 
     uchar4 *pixels = (uchar4*) buffer;
