@@ -48,9 +48,10 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     Window window;
 
-    window.resize(800, 600);
-    window.setMinimumSize(window.size());
-    window.setMaximumSize(window.size());
+    QSize preferred = window.sizeHint();
+    window.resize(preferred);
+    window.setMinimumSize(preferred);
+    window.setMaximumSize(preferred);
 
     int desktopArea = QApplication::desktop()->width() *
                      QApplication::desktop()->height();

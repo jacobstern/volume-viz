@@ -47,7 +47,10 @@ void kernel(void *buffer, int width, int height)
         uchar4 sample0 = tex2D( inTexture0, x, y ),
                sample1 = tex2D( inTexture1, x, y );
 
-        float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
+        if (sample0.w < 0xff || sample1.w < 0xff) {
+            pixels[index] = make_uchar4(1, 0, 0, 1);
+            return;
+        }
 
         float3 front = make_float3(sample0.x / 255.f, sample0.y / 255.f, sample0.z / 255.f),
                back  = make_float3(sample1.x / 255.f, sample1.y / 255.f, sample1.z / 255.f),
@@ -58,6 +61,8 @@ void kernel(void *buffer, int width, int height)
             pixels[index] = make_uchar4(0, 0, 0, 0);
             return;
         }
+
+        float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
 
         float3 ray   = dist / length,
                step  = ray * stepSize,

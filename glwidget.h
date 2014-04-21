@@ -65,18 +65,6 @@ public:
     const static int N_FRAMEBUFFERS = 2;
 //! [0]
 
-//! [1]
-public slots:
-    void setXRotation(int angle);
-    void setYRotation(int angle);
-    void setZRotation(int angle);
-
-signals:
-    void xRotationChanged(int angle);
-    void yRotationChanged(int angle);
-    void zRotationChanged(int angle);
-//! [1]
-
 //! [2]
 protected:
     void initializeGL();
@@ -95,9 +83,6 @@ private:
     void drawTextureQuad();
 
     QtLogo *logo;
-    int xRot;
-    int yRot;
-    int zRot;
     float scaleFactor;
     QPoint lastPos;
     QColor qtGreen;

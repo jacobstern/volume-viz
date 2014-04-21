@@ -63,13 +63,13 @@ static void perspectiveFrustum(GLdouble fovy, GLdouble aspect, GLdouble zNear, G
 {
     GLdouble xmin, xmax, ymin, ymax;
 
-       ymax = zNear * tan(fovy * M_PI / 360.0);
-       ymin = -ymax;
-       xmin = ymin * aspect;
-       xmax = ymax * aspect;
+    ymax = zNear * tan(fovy * M_PI / 360.0);
+    ymin = -ymax;
+    xmin = ymin * aspect;
+    xmax = ymax * aspect;
 
 
-       glFrustum(xmin, xmax, ymin, ymax, zNear, zFar);
+    glFrustum(xmin, xmax, ymin, ymax, zNear, zFar);
 }
 
 //! [0]
@@ -77,9 +77,6 @@ GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
 {
     logo = 0;
-    xRot = 0;
-    yRot = 0;
-    zRot = 0;
 
     scaleFactor = 0.5;
 
@@ -122,50 +119,9 @@ QSize GLWidget::minimumSizeHint() const
 QSize GLWidget::sizeHint() const
 //! [3] //! [4]
 {
-    return QSize(400, 400);
+    return QSize(800, 600);
 }
 //! [4]
-
-static void qNormalizeAngle(int &angle)
-{
-//    while (angle < 0)
-//        angle += 360 * 16;
-//    while (angle > 360 * 16)
-//        angle -= 360 * 16;
-    angle = angle % (360 * 16);
-}
-
-//! [5]
-void GLWidget::setXRotation(int angle)
-{
-    qNormalizeAngle(angle);
-    if (angle != xRot) {
-        xRot = angle;
-        emit xRotationChanged(angle);
-        updateGL();
-    }
-}
-//! [5]
-
-void GLWidget::setYRotation(int angle)
-{
-    qNormalizeAngle(angle);
-    if (angle != yRot) {
-        yRot = angle;
-        emit yRotationChanged(angle);
-        updateGL();
-    }
-}
-
-void GLWidget::setZRotation(int angle)
-{
-    qNormalizeAngle(angle);
-    if (angle != zRot) {
-        zRot = angle;
-        emit zRotationChanged(angle);
-        updateGL();
-    }
-}
 
 //! [6]
 void GLWidget::initializeGL()
@@ -249,15 +205,12 @@ void GLWidget::paintGL()
 
     camera->updateView();
 
-//    // rotate the cube by the rotation value
-//    glRotatef(xRot / 20, 1.0f, 0.0f, 0.0f);
-//    glRotatef(yRot / 20, 0.0f, 1.0f, 0.0f);
-//    glRotatef(zRot / 20, 0.0f, 0.0f, 1.0f);
-
     {
         QPainter frontFace(framebuffers[FRONT_FACE_BUFFER]);
 
         firstPass.bind();
+
+        glClearColor( 0.f, 0.f, 0.f, 0.f );
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         drawProxyGeometry();
@@ -269,6 +222,8 @@ void GLWidget::paintGL()
         QPainter backFace(framebuffers[BACK_FACE_BUFFER]);
 
         firstPass.bind();
+
+        glClearColor( 0.f, 0.f, 0.f, 0.f );
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glCullFace(GL_FRONT);
@@ -298,6 +253,7 @@ void GLWidget::paintGL()
     screen.bind();
     screen.setAttributeValue("texture", GL_TEXTURE0);
 
+    glClearColor( 0.f, 0.f, 0.f, 1.f );
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     drawTextureQuad();
