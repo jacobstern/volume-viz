@@ -90,6 +90,8 @@ private:
     GLuint resultBuffer, resultTexture;
     QGLShaderProgram firstPass, screen;
     QGLFramebufferObject *framebuffers[GLWidget::N_FRAMEBUFFERS];
+
+    QMatrix4x4 perspective;
 };
 //! [3]
 

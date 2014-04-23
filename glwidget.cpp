@@ -267,11 +267,12 @@ void GLWidget::resizeGL(int width, int height)
     // Set the viewport given the resize event
     glViewport(0, 0, width, height);
 
+    perspective = QMatrix4x4();
+    perspective.perspective( 45.f, (float) width / (float) height, 0.1f, 100.f );
+
     // Reset the Projection matrix
     glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-
-    perspectiveFrustum(45.0f, (GLfloat) width / (GLfloat) height, 0.1f, 100.0f);
+    glLoadMatrixf( perspective.constData() );
 
     glMatrixMode(GL_MODELVIEW);
 
