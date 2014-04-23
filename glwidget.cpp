@@ -204,6 +204,7 @@ void GLWidget::paintGL()
     glEnable(GL_CULL_FACE);
 
     camera->updateView();
+    camera->inverseTransformation();
 
     {
         QPainter frontFace(framebuffers[FRONT_FACE_BUFFER]);
@@ -323,7 +324,14 @@ void GLWidget::resizeGL(int width, int height)
 //! [9]
 void GLWidget::mousePressEvent(QMouseEvent *event)
 {
-    lastPos = event->pos();
+    if (event->buttons() & Qt::LeftButton) {
+        int x = event->x(), y = event->y();
+
+
+    }
+    else if (event->buttons() & Qt::RightButton) {
+        lastPos = event->pos();
+    }
 }
 //! [9]
 
@@ -333,7 +341,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
     int dx = event->x() - lastPos.x();
     int dy = event->y() - lastPos.y();
 
-    if (event->buttons() & Qt::LeftButton) {
+    if (event->buttons() & Qt::RightButton) {
         // Stolen from CS224 Chameleon
         QVector3D position = camera->getPosition();
 

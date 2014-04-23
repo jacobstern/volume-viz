@@ -23,6 +23,7 @@ public slots:
     void setUp(QVector3D vector);
 
     void updateView();
+    QMatrix4x4 inverseTransformation();
 
 private:
     QVector3D position;
@@ -31,6 +32,8 @@ private:
 
     float fov;
 
+    QMatrix4x4 transform;
+    void lazyComputeTransform();
 };
 
 #endif // CAMERA_H

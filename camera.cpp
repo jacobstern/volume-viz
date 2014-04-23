@@ -50,27 +50,44 @@ void Camera::setUp(QVector3D vector)
 
 void Camera::updateView()
 {
-    QVector3D side = QVector3D::crossProduct(look, up).normalized(),
-              up = QVector3D::crossProduct(side, look).normalized();
-
-    GLfloat m[4][4];
-
-    m[0][0] = side.x();
-    m[1][0] = side.y();
-    m[2][0] = side.z();
-
-    m[0][1] = up.x();
-    m[1][1] = up.y();
-    m[2][1] = up.z();
-
-    m[0][2] = -look.x();
-    m[1][2] = -look.y();
-    m[2][2] = -look.z();
-
-    m[3][3] = 1.0f;
+    lazyComputeTransform();
 
     glMatrixMode(GL_MODELVIEW);
 
-    glLoadMatrixf(&m[0][0]);
-    glTranslatef(-position.x(), -position.y(), -position.z());
+    glLoadMatrixf( transform.constData() );
+
+//    float debug[16];
+//    glGetFloatv(GL_MODELVIEW_MATRIX, debug);
+
+//    for (int i = 0; i < 16; i++) {
+//        qDebug() << i << " " << debug[i];
+//    }
+}
+
+QMatrix4x4 Camera::inverseTransformation()
+{
+    bool invertible;
+
+    QMatrix4x4 result = transform.inverted( &invertible );
+    Q_ASSERT( invertible );
+
+    return result;
+}
+
+void Camera::lazyComputeTransform()
+{
+    QVector3D side = QVector3D::crossProduct(look, up).normalized(),
+              up = QVector3D::crossProduct(side, look).normalized();
+
+    transform = QMatrix4x4( side.x(),   side.y(),   side.z(),   0.f,
+                            up.x(),     up.y(),     up.z(),     0.f,
+                            -look.x(),  -look.y(),  -look.z(),  0.f,
+                            0.f,        0.f,        0.f,        1.f ) *
+                QMatrix4x4( 1.0f,       0.0f,       0.0f,       -position.x(),
+                            0.0f,       1.0f,       0.0f,       -position.y(),
+                            0.0f,       0.0f,       1.0f,       -position.z(),
+                            0.0f,       0.0f,       0.0f,       1.0f );
+
+    // qDebug() << transform;
+    // transform.translate( position.x(), position.y(), position.z() );
 }
