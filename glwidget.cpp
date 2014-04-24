@@ -126,89 +126,11 @@ void GLWidget::initializeGL()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LINE_SMOOTH);
 
-//    QImage image, glImage;
-
-//    QString fileName(":/textures/color_test_pattern.jpg");
-//    if (!image.load(fileName)) {
-//        std::cerr << "Failed to load image named: " << fileName.toStdString();
-
-//        image = QImage(256, 256, QImage::Format_RGB32);
-//        image.fill(0xffff00);
-//    }
-//    glImage = convertToGLFormat(image);
-
-//    glGenTextures(1, &tex);
-
-//    glActiveTexture(GL_TEXTURE0);
-//    glBindTexture(GL_TEXTURE_2D, tex);
-//    glTexImage2D(GL_TEXTURE_2D, 0, 3, glImage.width(), glImage.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, glImage.bits());
-//    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-//    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-
     glMatrixMode(GL_MODELVIEW);
 
-    if (!firstPass.addShaderFromSourceFile(QGLShader::Vertex, ":/vert/firstpass.vert")) {
-        qDebug() << "Error compiling vertex shader." << endl;
-        qDebug() << firstPass.log();
-
-        return;
-    }
-
-    if (!firstPass.addShaderFromSourceFile(QGLShader::Fragment, ":/frag/firstpass.frag")) {
-        qDebug() << "Error compiling fragment shader." << endl;
-        qDebug() << firstPass.log();
-
-        return;
-    }
-
-    if (!firstPass.link()) {
-        qDebug() << "Error linking shader." << endl;
-        qDebug() << firstPass.log();
-
-        return;
-    }
-
-    if (!screen.addShaderFromSourceFile(QGLShader::Vertex, ":/vert/screen.vert")) {
-        qDebug() << "Error compiling vertex shader." << endl;
-        qDebug() << screen.log();
-
-        return;
-    }
-
-    if (!screen.addShaderFromSourceFile(QGLShader::Fragment, ":/frag/screen.frag")) {
-        qDebug() << "Error compiling fragment shader." << endl;
-        qDebug() << screen.log();
-
-        return;
-    }
-
-    if (!screen.link()) {
-        qDebug() << "Error linking shader." << endl;
-        qDebug() << screen.log();
-
-        return;
-    }
-
-    if (!ui.addShaderFromSourceFile(QGLShader::Vertex, ":/vert/ui.vert")) {
-        qDebug() << "Error compiling vertex shader." << endl;
-        qDebug() << screen.log();
-
-        return;
-    }
-
-    if (!ui.addShaderFromSourceFile(QGLShader::Fragment, ":/frag/ui.frag")) {
-        qDebug() << "Error compiling fragment shader." << endl;
-        qDebug() << screen.log();
-
-        return;
-    }
-
-    if (!ui.link()) {
-        qDebug() << "Error linking shader." << endl;
-        qDebug() << screen.log();
-
-        return;
-    }
+    loadShaderProgram( firstPass, tr("firstpass") );
+    loadShaderProgram( screen, tr("screen") );
+    loadShaderProgram( ui, tr("ui") );
 }
 //! [6]
 
@@ -528,4 +450,28 @@ void GLWidget::showDragUI()
     glEnable( GL_DEPTH_TEST );
 
     CHECK_GL_ERROR_DEBUG();
+}
+
+void GLWidget::loadShaderProgram(QGLShaderProgram &program, QString name)
+{
+    if (!program.addShaderFromSourceFile(QGLShader::Vertex, tr(":/vert/") + name + tr(".vert") )) {
+        qDebug() << "Error compiling vertex shader." << endl;
+        qDebug() << program.log();
+
+        return;
+    }
+
+    if (!program.addShaderFromSourceFile(QGLShader::Fragment, tr(":/frag/") + name + tr(".frag") )) {
+        qDebug() << "Error compiling fragment shader." << endl;
+        qDebug() << program.log();
+
+        return;
+    }
+
+    if (!program.link()) {
+        qDebug() << "Error linking shader." << endl;
+        qDebug() << program.log();
+
+        return;
+    }
 }

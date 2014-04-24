@@ -87,6 +87,8 @@ private:
     void drawTextureQuad();
     void showDragUI();
 
+    void loadShaderProgram(QGLShaderProgram &program, QString name);
+
     QtLogo *logo;
     float scaleFactor;
     QPoint lastPos;
