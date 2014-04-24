@@ -204,7 +204,6 @@ void GLWidget::paintGL()
     glEnable(GL_CULL_FACE);
 
     camera->updateView();
-    camera->inverseTransformation();
 
     {
         QPainter frontFace(framebuffers[FRONT_FACE_BUFFER]);
@@ -328,7 +327,24 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
     if (event->buttons() & Qt::LeftButton) {
         int x = event->x(), y = event->y();
 
+        bool success;
 
+        QMatrix4x4 inverseTransformation = ( perspective * camera->transformation() ).inverted( &success );
+
+        QVector4D front( 2.f * (float) x / (float) width() - 1.f, 2.f * (float) y / (float) height() - 1.f, -1.f, 1.f );
+        QVector4D back( 2.f * (float) x / (float) width() - 1.f, 2.f * (float) y / (float) height() - 1.f, 1.f, 1.f );
+
+        QVector4D frontTransformed = ( perspective * camera->transformation() ).inverted( &success ) * front;
+        QVector4D backTransformed  = ( perspective * camera->transformation() ).inverted( &success ) * back;
+
+        Q_ASSERT( success );
+
+//        QVector4D result = ( perspective * camera->transformation() ) * QVector4D( 1, 1, 1, 1 );
+//        qDebug() << result / result.w();
+
+//        qDebug() << front;
+//        qDebug() << frontRes / frontRes.w();
+//        qDebug() << backRes / backRes.w();
     }
     else if (event->buttons() & Qt::RightButton) {
         lastPos = event->pos();

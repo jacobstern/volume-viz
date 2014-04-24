@@ -23,6 +23,7 @@ public slots:
     void setUp(QVector3D vector);
 
     void updateView();
+    QMatrix4x4 transformation();
     QMatrix4x4 inverseTransformation();
 
 private:

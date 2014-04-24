@@ -74,6 +74,13 @@ QMatrix4x4 Camera::inverseTransformation()
     return result;
 }
 
+QMatrix4x4 Camera::transformation()
+{
+    lazyComputeTransform();
+
+    return transform;
+}
+
 void Camera::lazyComputeTransform()
 {
     QVector3D side = QVector3D::crossProduct(look, up).normalized(),
