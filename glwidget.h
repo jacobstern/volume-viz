@@ -71,6 +71,7 @@ protected:
     void paintGL();
     void resizeGL(int width, int height);
     void mousePressEvent(QMouseEvent *event);
+    void mouseReleaseEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
     void wheelEvent(QWheelEvent *event);
 //! [2]
@@ -79,8 +80,12 @@ protected:
 private:
     Camera *camera;
 
+    bool isDragging;
+    QVector2D dragStart, dragEnd;
+
     void drawProxyGeometry();
     void drawTextureQuad();
+    void showDragUI();
 
     QtLogo *logo;
     float scaleFactor;
@@ -88,7 +93,7 @@ private:
     QColor qtGreen;
     QColor qtPurple;
     GLuint resultBuffer, resultTexture;
-    QGLShaderProgram firstPass, screen;
+    QGLShaderProgram firstPass, screen, ui;
     QGLFramebufferObject *framebuffers[GLWidget::N_FRAMEBUFFERS];
 
     QMatrix4x4 perspective;

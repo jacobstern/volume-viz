@@ -2,9 +2,11 @@
     <qresource prefix="/vert">
         <file>firstpass.vert</file>
         <file>screen.vert</file>
+        <file>ui.vert</file>
     </qresource>
     <qresource prefix="/frag">
         <file>firstpass.frag</file>
         <file>screen.frag</file>
+        <file>ui.frag</file>
     </qresource>
 </RCC>

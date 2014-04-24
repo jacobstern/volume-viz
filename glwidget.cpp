@@ -59,19 +59,6 @@
 #define FRONT_FACE_BUFFER   0
 #define BACK_FACE_BUFFER    1
 
-static void perspectiveFrustum(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar)
-{
-    GLdouble xmin, xmax, ymin, ymax;
-
-    ymax = zNear * tan(fovy * M_PI / 360.0);
-    ymin = -ymax;
-    xmin = ymin * aspect;
-    xmax = ymax * aspect;
-
-
-    glFrustum(xmin, xmax, ymin, ymax, zNear, zFar);
-}
-
 //! [0]
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
@@ -92,6 +79,8 @@ GLWidget::GLWidget(QWidget *parent)
     camera = new Camera( 0 );
     camera->setPosition( QVector3D(0, 0, -4.f) );
     camera->lookAt( QVector3D(0, 0, 0) );
+
+    isDragging = false;
 }
 //! [0]
 
@@ -130,6 +119,7 @@ void GLWidget::initializeGL()
 
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LINE_SMOOTH);
 
 //    QImage image, glImage;
 
@@ -188,6 +178,27 @@ void GLWidget::initializeGL()
     }
 
     if (!screen.link()) {
+        qDebug() << "Error linking shader." << endl;
+        qDebug() << screen.log();
+
+        return;
+    }
+
+    if (!ui.addShaderFromSourceFile(QGLShader::Vertex, ":/vert/ui.vert")) {
+        qDebug() << "Error compiling vertex shader." << endl;
+        qDebug() << screen.log();
+
+        return;
+    }
+
+    if (!ui.addShaderFromSourceFile(QGLShader::Fragment, ":/frag/ui.frag")) {
+        qDebug() << "Error compiling fragment shader." << endl;
+        qDebug() << screen.log();
+
+        return;
+    }
+
+    if (!ui.link()) {
         qDebug() << "Error linking shader." << endl;
         qDebug() << screen.log();
 
@@ -257,6 +268,9 @@ void GLWidget::paintGL()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     drawTextureQuad();
+
+    if (isDragging)
+        showDragUI();
 }
 //! [7]
 
@@ -326,13 +340,14 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->buttons() & Qt::LeftButton) {
         int x = event->x(), y = event->y();
+        QVector2D window( (float) x / (float) width(), (float) y / (float) height() );
 
         bool success;
 
         QMatrix4x4 inverseTransformation = ( perspective * camera->transformation() ).inverted( &success );
 
-        QVector4D front( 2.f * (float) x / (float) width() - 1.f, 2.f * (float) y / (float) height() - 1.f, -1.f, 1.f );
-        QVector4D back( 2.f * (float) x / (float) width() - 1.f, 2.f * (float) y / (float) height() - 1.f, 1.f, 1.f );
+        QVector4D front( 2.f * window.x() - 1.f, 2.f * window.y() - 1.f, -1.f, 1.f ),
+                  back ( 2.f * window.x() - 1.f, 2.f * window.y() - 1.f,  1.f, 1.f );
 
         QVector4D frontTransformed = ( perspective * camera->transformation() ).inverted( &success ) * front;
         QVector4D backTransformed  = ( perspective * camera->transformation() ).inverted( &success ) * back;
@@ -345,6 +360,9 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 //        qDebug() << front;
 //        qDebug() << frontRes / frontRes.w();
 //        qDebug() << backRes / backRes.w();
+
+        isDragging = true;
+        dragStart = window;
     }
     else if (event->buttons() & Qt::RightButton) {
         lastPos = event->pos();
@@ -374,12 +392,23 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
         camera->setPosition( QVector3D( r * sin(theta) * cos(phi), r * cos(theta), r * sin(theta) * sin(phi) ) );
         camera->lookAt( QVector3D(0.f, 0.f, 0.f) );
-
-        update();
     }
     lastPos = event->pos();
+
+    if (isDragging) {
+        dragEnd = QVector2D( (float) lastPos.x() / (float) width(), (float) lastPos.y() / (float) height() );
+    }
+
+    update();
 }
 //! [10]
+
+void GLWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+    isDragging = false;
+
+    update();
+}
 
 //! [11]
 void GLWidget::drawProxyGeometry()
@@ -462,4 +491,25 @@ void GLWidget::wheelEvent(QWheelEvent *event)
 
         update();
     }
+}
+
+void GLWidget::showDragUI()
+{
+    glDisable( GL_DEPTH_TEST );
+
+    ui.bind();
+
+    glLineWidth( 2.f );
+    glColor4f( 1.f, 0.2f, 0.2f, 1.f );
+
+    glBegin( GL_LINES );
+    {
+        glVertex2f( dragStart.x() * 2.f - 1.f, -dragStart.y() * 2.f + 1.f );
+        glVertex2f( dragEnd.x() * 2.f - 1.f, -dragEnd.y() * 2.f + 1.f );
+    }
+    glEnd();
+
+    glEnable( GL_DEPTH_TEST );
+
+    CHECK_GL_ERROR_DEBUG();
 }

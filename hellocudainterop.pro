@@ -19,7 +19,9 @@ OTHER_FILES += kernel.cu \
     firstpass.frag \
     firstpass.vert \
     screen.frag \
-    screen.vert
+    screen.vert \
+    ui.frag \
+    ui.vert
 CUDA_SOURCES += kernel.cu
 
 # paths to cuda sdk on filesystem
