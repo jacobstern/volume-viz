@@ -59,6 +59,11 @@
 #define FRONT_FACE_BUFFER   0
 #define BACK_FACE_BUFFER    1
 
+static inline float glc( float normalized )
+{
+    return normalized * 2.f - 1.f;
+}
+
 //! [0]
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
@@ -338,29 +343,9 @@ void GLWidget::resizeGL(int width, int height)
 //! [9]
 void GLWidget::mousePressEvent(QMouseEvent *event)
 {
+    QVector2D window( event->x() / (float) width(), event->y() / (float) height() );
+
     if (event->buttons() & Qt::LeftButton) {
-        int x = event->x(), y = event->y();
-        QVector2D window( (float) x / (float) width(), (float) y / (float) height() );
-
-        bool success;
-
-        QMatrix4x4 inverseTransformation = ( perspective * camera->transformation() ).inverted( &success );
-
-        QVector4D front( 2.f * window.x() - 1.f, 2.f * window.y() - 1.f, -1.f, 1.f ),
-                  back ( 2.f * window.x() - 1.f, 2.f * window.y() - 1.f,  1.f, 1.f );
-
-        QVector4D frontTransformed = ( perspective * camera->transformation() ).inverted( &success ) * front;
-        QVector4D backTransformed  = ( perspective * camera->transformation() ).inverted( &success ) * back;
-
-        Q_ASSERT( success );
-
-//        QVector4D result = ( perspective * camera->transformation() ) * QVector4D( 1, 1, 1, 1 );
-//        qDebug() << result / result.w();
-
-//        qDebug() << front;
-//        qDebug() << frontRes / frontRes.w();
-//        qDebug() << backRes / backRes.w();
-
         isDragging = true;
         dragStart = window;
     }
@@ -396,7 +381,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
     lastPos = event->pos();
 
     if (isDragging) {
-        dragEnd = QVector2D( (float) lastPos.x() / (float) width(), (float) lastPos.y() / (float) height() );
+        dragEnd = QVector2D( lastPos.x() / (float) width(), lastPos.y() / (float) height() );
     }
 
     update();
@@ -405,6 +390,37 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
 void GLWidget::mouseReleaseEvent(QMouseEvent *event)
 {
+    if (isDragging) {
+        QVector2D window( event->x() / (float) width(), event->y() / (float) height() );
+
+        bool success;
+
+        QMatrix4x4 inverse = ( perspective * camera->transformation() ).inverted( &success );
+
+        QVector4D front = inverse * QVector4D( glc( window.x() ), -glc( window.y() ), -1.f, 1.f ),
+                  back  = inverse * QVector4D( glc( window.x() ), -glc( window.y() ),  1.f, 1.f ),
+                  side  = inverse * QVector4D( glc( dragStart.x() ), -glc( dragStart.y() ),
+                                               -1.f, 1.f );
+
+        front /= front.w();
+        back  /= back.w();
+        side  /= side.w();
+
+        Q_ASSERT( success );
+
+        QVector4D a = (back - front).normalized(),
+                  b = (side - front).normalized();
+
+        QVector3D p( front.x(), front.y(), front.z() ),
+                  n( QVector3D::crossProduct(
+                         QVector3D( a.x(), a.y(), a.z() ),
+                         QVector3D( b.x(), b.y(), b.z() ) ) );
+
+        float d = -QVector3D::dotProduct( n, p );
+
+        qDebug() << n.x() << "x + " << n.y() << "y + " << n.z() << "z +" << d << " = 0";
+    }
+
     isDragging = false;
 
     update();
@@ -505,7 +521,7 @@ void GLWidget::showDragUI()
     glBegin( GL_LINES );
     {
         glVertex2f( dragStart.x() * 2.f - 1.f, -dragStart.y() * 2.f + 1.f );
-        glVertex2f( dragEnd.x() * 2.f - 1.f, -dragEnd.y() * 2.f + 1.f );
+        glVertex2f( dragEnd.x()   * 2.f - 1.f, -dragEnd.y()   * 2.f + 1.f );
     }
     glEnd();
 
