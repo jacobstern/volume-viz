@@ -289,12 +289,12 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
     if (event->buttons() & Qt::LeftButton) {
         dragStart = window;
         didStartDragging = true;
+
+        hasCuttingPlane = false;
     }
     else if (event->buttons() & Qt::RightButton) {
         lastPos = event->pos();
     }
-
-    hasCuttingPlane = false;
 }
 //! [9]
 
