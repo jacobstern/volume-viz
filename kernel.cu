@@ -29,11 +29,12 @@ float4 sampleVolume(float3 pos)
     }
 }
 
+#define MAX_STEPS 64
+
 __global__
 void kernel(void *buffer, int width, int height, struct slice_params slice)
 {
-    const float stepSize = 0.02f;
-    const int maxIters = 200;
+    const float stepSize = 1.f / MAX_STEPS;
 
     uchar4 *pixels = (uchar4*) buffer;
 
@@ -47,56 +48,56 @@ void kernel(void *buffer, int width, int height, struct slice_params slice)
         uchar4 sample0 = tex2D( inTexture0, x, y ),
                sample1 = tex2D( inTexture1, x, y );
 
-        pixels[index] = sample0;
+//        pixels[index] = sample0;
 
-//        if (sample0.w < 0xff || sample1.w < 0xff) {
-//            pixels[index] = make_uchar4(1, 0, 0, 1);
-//            return;
-//        }
+        if (sample0.w < 0xff || sample1.w < 0xff) {
+            pixels[index] = make_uchar4(1, 0, 0, 1);
+            return;
+        }
 
-//        float3 front = make_float3(sample0.x / 255.f, sample0.y / 255.f, sample0.z / 255.f),
-//               back  = make_float3(sample1.x / 255.f, sample1.y / 255.f, sample1.z / 255.f),
-//               dist  = back - front;
+        float3 front = make_float3(sample0.x / 255.f, sample0.y / 255.f, sample0.z / 255.f),
+               back  = make_float3(sample1.x / 255.f, sample1.y / 255.f, sample1.z / 255.f),
+               dist  = back - front;
 
-//        float length = sqrt(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
-//        if (length < 0.001f) {
-//            pixels[index] = make_uchar4(0, 0, 0, 0);
-//            return;
-//        }
+        float length = sqrt(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
+        if (length < 0.001f) {
+            pixels[index] = make_uchar4(0, 0, 0, 0);
+            return;
+        }
 
-//        float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
+        float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
 
-//        float3 ray   = dist / length,
-//               step  = ray * stepSize,
-//               pos   = front;
+        float3 ray   = dist / length,
+               step  = ray * stepSize,
+               pos   = front;
 
-//        for (int i = 0; i < maxIters; ++i) {
-//            pos += step;
-//            if (pos.x > 1.0f || pos.x < 0.0f
-//                    || pos.y > 1.0f || pos.y < 0.0f
-//                    || pos.z > 1.0f || pos.z < 0.0f) {
-//                break;
-//            }
+        for (int i = 0; i < MAX_STEPS; ++i) {
+            pos += step;
+            if (pos.x > 1.0f || pos.x < 0.0f
+                    || pos.y > 1.0f || pos.y < 0.0f
+                    || pos.z > 1.0f || pos.z < 0.0f) {
+                break;
+            }
 
-//            float4 vox = sampleVolume(pos);
+            float4 vox = sampleVolume(pos);
 
-//            accum.x += vox.x * vox.w * (1.f - accum.w);
-//            accum.y += vox.y * vox.w * (1.f - accum.w);
-//            accum.z += vox.z * vox.w * (1.f - accum.w);
-//            accum.w += vox.w * (1.f - accum.w);
+            accum.x += vox.x * vox.w * (1.f - accum.w);
+            accum.y += vox.y * vox.w * (1.f - accum.w);
+            accum.z += vox.z * vox.w * (1.f - accum.w);
+            accum.w += vox.w * (1.f - accum.w);
 
-//            if (accum.w > .95f) {
-//                break;
-//            }
-//        }
-//        // accum = make_float4(fabs(ray.x), fabs(ray.y), fabs(ray.z), 1.0f);
+            if (accum.w > .95f) {
+                break;
+            }
+        }
+        // accum = make_float4(fabs(ray.x), fabs(ray.y), fabs(ray.z), 1.0f);
 
-//        accum.x = fminf(accum.x, 1.f);
-//        accum.y = fminf(accum.y, 1.f);
-//        accum.z = fminf(accum.z, 1.f);
-//        accum.w = fminf(accum.w, 1.f);
+        accum.x = fminf(accum.x, 1.f);
+        accum.y = fminf(accum.y, 1.f);
+        accum.z = fminf(accum.z, 1.f);
+        accum.w = fminf(accum.w, 1.f);
 
-//        pixels[index] = make_uchar4(accum.x * 0xff, accum.y * 0xff, accum.z * 0xff, accum.w * 0xff);
+        pixels[index] = make_uchar4(accum.x * 0xff, accum.y * 0xff, accum.z * 0xff, accum.w * 0xff);
     }
 }
 
