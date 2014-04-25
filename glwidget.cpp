@@ -85,7 +85,9 @@ GLWidget::GLWidget(QWidget *parent)
     camera->setPosition( QVector3D(0, 0, -4.f) );
     camera->lookAt( QVector3D(0, 0, 0) );
 
+    didStartDragging = false;
     isDragging = false;
+    hasCuttingPlane = false;
 }
 //! [0]
 
@@ -171,7 +173,24 @@ void GLWidget::paintGL()
         backFace.end();
     }
 
-    runCuda( width, height );
+    if (hasCuttingPlane) {
+        struct slice_params slice;
+
+        slice.type = 0;
+
+        slice.params[0] = cutPoint.x();
+        slice.params[1] = cutPoint.y();
+        slice.params[2] = cutPoint.z();
+
+        slice.params[3] = cutNormal.x();
+        slice.params[4] = cutNormal.y();
+        slice.params[5] = cutNormal.z();
+
+        runCuda( width, height, &slice );
+    }
+    else {
+        runCuda( width, height, NULL );
+    }
 
     glBindBuffer( GL_PIXEL_UNPACK_BUFFER, resultBuffer);
 
@@ -268,12 +287,14 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
     QVector2D window( event->x() / (float) width(), event->y() / (float) height() );
 
     if (event->buttons() & Qt::LeftButton) {
-        isDragging = true;
         dragStart = window;
+        didStartDragging = true;
     }
     else if (event->buttons() & Qt::RightButton) {
         lastPos = event->pos();
     }
+
+    hasCuttingPlane = false;
 }
 //! [9]
 
@@ -281,32 +302,33 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
     int dx = event->x() - lastPos.x();
-    int dy = event->y() - lastPos.y();
+        int dy = event->y() - lastPos.y();
 
-    if (event->buttons() & Qt::RightButton) {
-        // Stolen from CS224 Chameleon
-        QVector3D position = camera->getPosition();
+        if (event->buttons() & Qt::RightButton) {
+            // Stolen from CS224 Chameleon
+            QVector3D position = camera->getPosition();
 
-        float r = position.length(),
-              theta = acos( double(position.y() / r) ) - dy / 200.f,
-              phi = atan2( position.z(), position.x() ) + dx / 200.f;
+            float r = position.length(),
+                  theta = acos( double(position.y() / r) ) - dy / 200.f,
+                  phi = atan2( position.z(), position.x() ) + dx / 200.f;
 
-        if (theta < 0.1f)
-            theta = 0.1f;
+            if (theta < 0.1f)
+                theta = 0.1f;
 
-        if (theta > M_PI - 0.1f)
-            theta = M_PI - 0.1f;
+            if (theta > M_PI - 0.1f)
+                theta = M_PI - 0.1f;
 
-        camera->setPosition( QVector3D( r * sin(theta) * cos(phi), r * cos(theta), r * sin(theta) * sin(phi) ) );
-        camera->lookAt( QVector3D(0.f, 0.f, 0.f) );
-    }
-    lastPos = event->pos();
+            camera->setPosition( QVector3D( r * sin(theta) * cos(phi), r * cos(theta), r * sin(theta) * sin(phi) ) );
+            camera->lookAt( QVector3D(0.f, 0.f, 0.f) );
+        }
+        lastPos = event->pos();
 
-    if (isDragging) {
-        dragEnd = QVector2D( lastPos.x() / (float) width(), lastPos.y() / (float) height() );
-    }
+        if (didStartDragging) {
+            isDragging = true;
+            dragEnd = QVector2D( lastPos.x() / (float) width(), lastPos.y() / (float) height() );
+        }
 
-    update();
+        update();
 }
 //! [10]
 
@@ -320,9 +342,9 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         QMatrix4x4 inverse = ( perspective * camera->transformation() ).inverted( &success );
 
         QVector4D front = inverse * QVector4D( glc( window.x() ), -glc( window.y() ), -1.f, 1.f ),
-                  back  = inverse * QVector4D( glc( window.x() ), -glc( window.y() ),  1.f, 1.f ),
-                  side  = inverse * QVector4D( glc( dragStart.x() ), -glc( dragStart.y() ),
-                                               -1.f, 1.f );
+                back  = inverse * QVector4D( glc( window.x() ), -glc( window.y() ),  1.f, 1.f ),
+                side  = inverse * QVector4D( glc( dragStart.x() ), -glc( dragStart.y() ),
+                                             -1.f, 1.f );
 
         front /= front.w();
         back  /= back.w();
@@ -331,19 +353,20 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         Q_ASSERT( success );
 
         QVector4D a = (back - front).normalized(),
-                  b = (side - front).normalized();
+                b = (side - front).normalized();
 
         QVector3D p( front.x(), front.y(), front.z() ),
                   n( QVector3D::crossProduct(
-                         QVector3D( a.x(), a.y(), a.z() ),
-                         QVector3D( b.x(), b.y(), b.z() ) ) );
+                       QVector3D( a.x(), a.y(), a.z() ),
+                       QVector3D( b.x(), b.y(), b.z() ) ) );
 
-        float d = -QVector3D::dotProduct( n, p );
-
-        qDebug() << n.x() << "x + " << n.y() << "y + " << n.z() << "z +" << d << " = 0";
+        hasCuttingPlane = true;
+        cutPoint = p;
+        cutNormal = n;
     }
 
     isDragging = false;
+    didStartDragging = false;
 
     update();
 }

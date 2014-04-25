@@ -30,7 +30,7 @@ float4 sampleVolume(float3 pos)
 }
 
 __global__
-void kernel(void *buffer, int width, int height)
+void kernel(void *buffer, int width, int height, struct slice_params slice)
 {
     const float stepSize = 0.02f;
     const int maxIters = 200;
@@ -116,7 +116,7 @@ void registerCudaResources(GLuint input0, GLuint input1, GLuint output) {
     checkCudaErrors( cudaGraphicsGLRegisterBuffer(&pixelBuffer, output, cudaGraphicsRegisterFlagsWriteDiscard) );
 }
 
-void runCuda(int width, int height) {
+void runCuda(int width, int height, struct slice_params *slice) {
     cudaGraphicsResource_t resources[3] = { texture0, texture1, pixelBuffer };
 
     checkCudaErrors( cudaGraphicsMapResources(3, resources) );
@@ -138,7 +138,14 @@ void runCuda(int width, int height) {
         nBlocks = totalThreads / nThreads;
     nBlocks += ((totalThreads % nThreads) > 0 ) ? 1 : 0;
 
-    kernel<<< nBlocks, nThreads >>>(devBuffer, width, height);
+    struct slice_params kernParams;
+    if (slice) {
+        kernParams = *slice;
+    }
+    else {
+        kernParams.type = -1;
+    }
+    kernel<<< nBlocks, nThreads >>>(devBuffer, width, height, kernParams);
 
     checkCudaErrors( cudaUnbindTexture(inTexture0) );
 

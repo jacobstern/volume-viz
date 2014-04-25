@@ -80,8 +80,11 @@ protected:
 private:
     Camera *camera;
 
-    bool isDragging;
+    bool didStartDragging, isDragging;
     QVector2D dragStart, dragEnd;
+
+    bool hasCuttingPlane;
+    QVector3D cutPoint, cutNormal;
 
     void drawProxyGeometry();
     void drawTextureQuad();
