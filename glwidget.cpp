@@ -173,24 +173,31 @@ void GLWidget::paintGL()
         backFace.end();
     }
 
+    struct slice_params sliceParams;
+
     if (hasCuttingPlane) {
-        struct slice_params slice;
+        sliceParams.type = SLICE_PLANE;
 
-        slice.type = 0;
+        sliceParams.params[0] = cutPoint.x();
+        sliceParams.params[1] = cutPoint.y();
+        sliceParams.params[2] = cutPoint.z();
 
-        slice.params[0] = cutPoint.x();
-        slice.params[1] = cutPoint.y();
-        slice.params[2] = cutPoint.z();
-
-        slice.params[3] = cutNormal.x();
-        slice.params[4] = cutNormal.y();
-        slice.params[5] = cutNormal.z();
-
-        runCuda( width, height, &slice );
+        sliceParams.params[3] = cutNormal.x();
+        sliceParams.params[4] = cutNormal.y();
+        sliceParams.params[5] = cutNormal.z();
     }
     else {
-        runCuda( width, height, NULL );
+        sliceParams.type = SLICE_NONE;
     }
+
+    struct camera_params cameraParams;
+
+    QVector3D pos = camera->getPosition();
+    cameraParams.origin[0] = pos.x();
+    cameraParams.origin[1] = pos.y();
+    cameraParams.origin[2] = pos.z();
+
+    runCuda( width, height, sliceParams, cameraParams );
 
     glBindBuffer( GL_PIXEL_UNPACK_BUFFER, resultBuffer);
 

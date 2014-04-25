@@ -17,9 +17,19 @@ typedef texture<uchar4, cudaTextureType2D, cudaReadModeElementType> inTexture2D;
 inTexture2D inTexture0, inTexture1;
 
 __device__
+float vectorLength(float3 vec)
+{
+    return sqrtf(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
+}
+
+__device__
 float4 sampleVolume(float3 pos)
 {
     // TODO: Sample from volume texture
+    if (pos.x > 1.f || pos.y > 1.f || pos.z > 1.f
+            || pos.x < 0.f || pos.y < 0.f || pos.z < 0.f) {
+        return make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
 
     if ((pos.x - .5f) * (pos.x - .5f) + (pos.z - .5f) * (pos.z - .5f) < .25) {
        return make_float4(1.f, 1.f, 1.f, 0.01f);
@@ -29,13 +39,16 @@ float4 sampleVolume(float3 pos)
     }
 }
 
-#define MAX_STEPS 64
+#define MAX_STEPS 64 // TODO: Turn up to 128 for Sunlab machines
 
 __global__
-void kernel(void *buffer, int width, int height, struct slice_params slice)
+void kernel(void *buffer,
+            int width,
+            int height,
+            struct slice_params slice,
+            struct camera_params camera )
 {
-    const float stepSize = 1.f / MAX_STEPS;
-
+    extern __shared__ unsigned char sharedMemory[];
     uchar4 *pixels = (uchar4*) buffer;
 
     int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -59,7 +72,7 @@ void kernel(void *buffer, int width, int height, struct slice_params slice)
                back  = make_float3(sample1.x / 255.f, sample1.y / 255.f, sample1.z / 255.f),
                dist  = back - front;
 
-        float length = sqrt(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
+        float length = vectorLength(dist);
         if (length < 0.001f) {
             pixels[index] = make_uchar4(0, 0, 0, 0);
             return;
@@ -67,8 +80,11 @@ void kernel(void *buffer, int width, int height, struct slice_params slice)
 
         float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
 
+        float3 camDist = front
+                         - make_float3( camera.origin[0], camera.origin[1], camera.origin[2] );
+
         float3 ray   = dist / length,
-               step  = ray * stepSize,
+               step  = ray * sqrtf(3) / MAX_STEPS,
                pos   = front;
 
         for (int i = 0; i < MAX_STEPS; ++i) {
@@ -117,7 +133,7 @@ void registerCudaResources(GLuint input0, GLuint input1, GLuint output) {
     checkCudaErrors( cudaGraphicsGLRegisterBuffer(&pixelBuffer, output, cudaGraphicsRegisterFlagsWriteDiscard) );
 }
 
-void runCuda(int width, int height, struct slice_params *slice) {
+void runCuda(int width, int height, struct slice_params slice, struct camera_params camera) {
     cudaGraphicsResource_t resources[3] = { texture0, texture1, pixelBuffer };
 
     checkCudaErrors( cudaGraphicsMapResources(3, resources) );
@@ -139,14 +155,7 @@ void runCuda(int width, int height, struct slice_params *slice) {
         nBlocks = totalThreads / nThreads;
     nBlocks += ((totalThreads % nThreads) > 0 ) ? 1 : 0;
 
-    struct slice_params kernParams;
-    if (slice) {
-        kernParams = *slice;
-    }
-    else {
-        kernParams.type = -1;
-    }
-    kernel<<< nBlocks, nThreads >>>(devBuffer, width, height, kernParams);
+    kernel<<< nBlocks, nThreads >>>(devBuffer, width, height, slice, camera);
 
     checkCudaErrors( cudaUnbindTexture(inTexture0) );
 
