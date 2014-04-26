@@ -46,6 +46,8 @@
 #include <QGLFramebufferObject>
 #include <QGLPixelBuffer>
 
+#include <QTime>
+
 #include "camera.h"
 
 class QtLogo;

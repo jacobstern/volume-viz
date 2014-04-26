@@ -173,7 +173,7 @@ void Patch::translate(const QVector3D &t)
 void Patch::draw() const
 {
     glPushMatrix();
-    glMultMatrixf(mat.constData());
+    glMultMatrixd(mat.constData());
     glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, faceColor);
 
     const GLushort *indices = geom->faces.constData();

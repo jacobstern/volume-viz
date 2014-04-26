@@ -2,7 +2,10 @@
 #define CAMERA_H
 
 #include <QObject>
-#include <QtOpenGL>
+//#include <QtOpenGL>
+#include <qgl.h>
+#include <QVector3D>
+#include <QMatrix4x4>
 
 class Camera : public QObject
 {

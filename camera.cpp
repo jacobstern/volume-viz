@@ -54,7 +54,7 @@ void Camera::updateView()
 
     glMatrixMode(GL_MODELVIEW);
 
-    glLoadMatrixf( transform.constData() );
+    glLoadMatrixd( transform.constData() );
 
 //    float debug[16];
 //    glGetFloatv(GL_MODELVIEW_MATRIX, debug);

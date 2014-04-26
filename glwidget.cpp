@@ -38,8 +38,9 @@
 **
 ****************************************************************************/
 
-#include <QtWidgets>
-#include <QtOpenGL>
+#include <QApplication>
+#include <QtGui>
+#include <qgl.h>
 
 #include <math.h>
 #include <iostream>
@@ -47,6 +48,17 @@
 #include "glwidget.h"
 #include "qtlogo.h"
 #include "kernel.cuh"
+
+#ifndef __APPLE__
+extern "C" {
+    GLAPI void APIENTRY glBindBuffer (GLenum target, GLuint buffer);
+    GLAPI void APIENTRY glGenBuffers (GLsizei n, GLuint *buffers);
+    GLAPI void APIENTRY glBufferData (GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage);
+
+    // extrapolation
+    GLAPI void APIENTRY glDeleteBuffers (GLenum target, GLuint *buffers);
+}
+#endif
 
 #define CHECK_GL_ERROR_DEBUG() \
     do { \
@@ -235,7 +247,7 @@ void GLWidget::paintGL()
     if (isDragging)
         showDragUI();
 
-    glUseProgram( 0 );
+//    glUseProgram( 0 );
 
     glPushMatrix();
     glLoadIdentity();
@@ -258,7 +270,7 @@ void GLWidget::resizeGL(int width, int height)
 
     // Reset the Projection matrix
     glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf( perspective.constData() );
+    glLoadMatrixd( perspective.constData() );
 
     glMatrixMode(GL_MODELVIEW);
 

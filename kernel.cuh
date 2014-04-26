@@ -1,7 +1,7 @@
 #ifndef _KERNEL_H
 #define _KERNEL_H
 
-#include <OpenGL/gl.h>
+#include <GL/gl.h>
 
 extern "C" {
 

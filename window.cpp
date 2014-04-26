@@ -38,7 +38,10 @@
 **
 ****************************************************************************/
 
-#include <QtWidgets>
+//#include <QtWidgets>
+
+#include <QApplication>
+#include <QtGui>
 
 #include "glwidget.h"
 #include "window.h"

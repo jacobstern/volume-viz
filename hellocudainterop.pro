@@ -41,7 +41,8 @@ INCLUDEPATH += $$_PRO_FILE_PWD_/include/
 
 #libs
 LIBS += -L$$CUDA_DIR/lib \
-        -L$$CUDA_SDK/lib
+        -L$$CUDA_SDK/lib \
+        -lGLU
 
 LIBS += -lcudart
 CUDA_INC = $$join(INCLUDEPATH, ' -I', '-I', ' ')
@@ -50,7 +51,9 @@ cuda.input = CUDA_SOURCES
 cuda.output = ${OBJECTS_DIR}${QMAKE_FILE_BASE}_cuda.o
 
 # tell it to use cuda compilers
-cuda.commands = $$CUDA_DIR/bin/nvcc -g -G -arch=$$CUDA_ARCH -c $$NVCC_FLAGS $$CUDA_INC $$LIBS ${QMAKE_FILE_NAME} -o ${QMAKE_FILE_OUT}
+#cuda.commands = $$CUDA_DIR/bin/nvcc -g -G -arch=$$CUDA_ARCH -c $$NVCC_FLAGS $$CUDA_INC $$LIBS ${QMAKE_FILE_NAME} -o ${QMAKE_FILE_OUT}
+cuda.commands = /usr/bin/nvcc -g -G -arch=$$CUDA_ARCH -c $$NVCC_FLAGS $$CUDA_INC $$LIBS ${QMAKE_FILE_NAME} -o ${QMAKE_FILE_OUT}
+
 
 cuda.dependency_type = TYPE_C
 cuda.depend_command = $$CUDA_DIR/bin/nvcc -g -G -M $$CUDA_INC $$NVCCFLAGS ${QMAKE_FILE_NAME}
