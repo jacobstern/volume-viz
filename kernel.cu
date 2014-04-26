@@ -58,7 +58,7 @@ float4 sampleVolume(float3 pos)
     }
 }
 
-#define MAX_STEPS 64 // TODO: Turn up to 128 for Sunlab machines
+#define MAX_STEPS 63 // TODO: Turn up to 128 for Sunlab machines
 
 __global__
 void kernel(void *buffer,
@@ -195,7 +195,8 @@ void runCuda(int width, int height, struct slice_params slice, struct camera_par
     if (height % blockSize.y)
         ++blockDims.y;
 
-    kernel<<< blockDims, blockSize, 512 * sizeof(float) >>>(devBuffer, width, height, slice, camera);
+    size_t sharedMemSize = ( MAX_STEPS + 1 ) * blockSize.x * blockSize.y * sizeof(unsigned char);
+    kernel<<< blockDims, blockSize, sharedMemSize >>>(devBuffer, width, height, slice, camera);
 
     checkCudaErrors( cudaUnbindTexture(inTexture0) );
 
