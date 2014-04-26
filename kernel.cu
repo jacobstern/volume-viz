@@ -23,6 +23,13 @@ float vectorLength(float3 vec)
 }
 
 __device__
+float blockMin(float shared[], float poll)
+{
+    shared[threadIdx.x] = poll;
+    __syncthreads();
+}
+
+__device__
 float4 sampleVolume(float3 pos)
 {
     // TODO: Sample from volume texture
@@ -51,17 +58,28 @@ void kernel(void *buffer,
     extern __shared__ unsigned char sharedMemory[];
     uchar4 *pixels = (uchar4*) buffer;
 
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int x = index % width;
-    unsigned int y = index / width;
+    int x = blockIdx.x * blockDim.x + threadIdx.x,
+        y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    int index = y * width + x;
+
+    int slabUpperX = min( (blockIdx.x + 1) * blockDim.x, width ),
+        slabUpperY = min( (blockIdx.y + 1) * blockDim.y, height),
+        slabLowerX = blockIdx.x * blockDim.x,
+        slabLowerY = blockIdx.y * blockDim.y,
+        slabWidth  = slabUpperX - slabLowerX,
+        slabHeight = slabUpperY - slabLowerY;
+
+    int slabY = y - slabLowerY,
+        slabX = x - slabLowerX,
+        slabIndex = slabY * slabWidth + slabX;
 
     if (index < width * height) {
-        // Roughly adapted from http://graphicsrunner.blogspot.com/2009/01/volume-rendering-101.html
 
         uchar4 sample0 = tex2D( inTexture0, x, y ),
                sample1 = tex2D( inTexture1, x, y );
 
-//        pixels[index] = sample0;
+        pixels[index] = sample0;
 
         if (sample0.w < 0xff || sample1.w < 0xff) {
             pixels[index] = make_uchar4(1, 0, 0, 1);
@@ -82,6 +100,9 @@ void kernel(void *buffer,
 
         float3 camDist = front
                          - make_float3( camera.origin[0], camera.origin[1], camera.origin[2] );
+        float camLength = vectorLength(camDist);
+
+        float desired = blockMin((float*)sharedMemory, camLength);
 
         float3 ray   = dist / length,
                step  = ray * sqrtf(3) / MAX_STEPS,
@@ -150,12 +171,15 @@ void runCuda(int width, int height, struct slice_params slice, struct camera_par
     size_t bufferSize;
     checkCudaErrors( cudaGraphicsResourceGetMappedPointer(&devBuffer, &bufferSize, pixelBuffer) );
 
-    // http://www.drdobbs.com/architecture-and-design/cuda-supercomputing-for-the-masses-part/222600097
-    int nThreads = 256, totalThreads = width * height,
-        nBlocks = totalThreads / nThreads;
-    nBlocks += ((totalThreads % nThreads) > 0 ) ? 1 : 0;
+    // For convenience, greedily chunk the screen into 256-pixel squares
+    dim3 blockSize(16, 16),
+         blockDims(width / blockSize.x, height / blockSize.y);
+    if (width % blockSize.x)
+        ++blockDims.x;
+    if (height % blockSize.y)
+        ++blockDims.y;
 
-    kernel<<< nBlocks, nThreads >>>(devBuffer, width, height, slice, camera);
+    kernel<<< blockDims, blockSize >>>(devBuffer, width, height, slice, camera);
 
     checkCudaErrors( cudaUnbindTexture(inTexture0) );
 
