@@ -49,6 +49,9 @@
 #include "qtlogo.h"
 #include "kernel.cuh"
 
+using std::cout;
+using std::endl;
+
 #ifndef __APPLE__
 extern "C" {
     GLAPI void APIENTRY glBindBuffer (GLenum target, GLuint buffer);
@@ -148,6 +151,8 @@ void GLWidget::initializeGL()
     loadShaderProgram( firstPass, tr("firstpass") );
     loadShaderProgram( screen, tr("screen") );
     loadShaderProgram( ui, tr("ui") );
+
+    loadVolume();
 }
 //! [6]
 
@@ -537,3 +542,41 @@ void GLWidget::loadShaderProgram(QGLShaderProgram &program, QString name)
         return;
     }
 }
+
+void GLWidget::loadVolume()
+{
+    // NOTE: Use hardcoded default for now
+    int width = 128;
+    int height = 128;
+    int depth = 128;
+
+    cout << "Generating mock voltex" << endl;
+    m_volgen = new VolumeGenerator(width, height, depth);
+    cout << "volgen initialized" << endl;
+    m_volgen->drawDefaultBrain();
+    cout << "Mock voltex has been generated" << endl;
+
+    size_t size;
+    byte* texels = m_volgen->getBytes(size);
+    assert(size == width*height*depth*sizeof(byte));
+
+    cout << "Loading mock voltex into CUDA" << endl;
+    cudaLoadVolume(texels, size, Vector3(width,height,depth));
+    cout << "Mock voltex has been loaded into CUDA" << endl;
+
+    // TODO: Error checking!
+    delete m_volgen;
+
+}
+
+
+
+
+
+
+
+
+
+
+
+

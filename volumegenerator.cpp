@@ -9,7 +9,7 @@ using namespace std;
 
 VolumeGenerator::VolumeGenerator(int x, int y, int z)
 {
-    m_volume = new byte[x*y*x];
+    m_volume = new byte[x*y*z];
     m_x = x;
     m_y = y;
     m_z = z;
@@ -55,7 +55,7 @@ void VolumeGenerator::drawDefaultBrain()
                         Vector3(30.0f, 10.0f, 13.0f),
                         Vector3(20.0f, 3.0f, 8.0f)};
 
-    char shades[4] = {(byte)0.5, (byte)0.6f, (byte)0.8f, (byte)1.0f};
+    char shades[4] = {(byte)0.5, (byte)0.6, (byte)0.8, (byte)1.0};
 
     for(int center_idx=0; center_idx<2; center_idx++){
         for(int layer_idx=0; layer_idx<4; layer_idx++){
@@ -98,7 +98,7 @@ byte* VolumeGenerator::getBytes(size_t& size)
 
 size_t VolumeGenerator::getVolSize()
 {
-    return m_x*m_y*m_z*sizeof(BGRA);
+    return m_x*m_y*m_z*sizeof(byte);
 }
 
 

@@ -49,6 +49,7 @@
 #include <QTime>
 
 #include "camera.h"
+#include "volumegenerator.h"
 
 class QtLogo;
 
@@ -94,6 +95,8 @@ private:
 
     void loadShaderProgram(QGLShaderProgram &program, QString name);
 
+    void loadVolume();
+
     QtLogo *logo;
     float scaleFactor;
     QPoint lastPos;
@@ -110,6 +113,8 @@ private:
     QFont font; // font for rendering text
 
     QMatrix4x4 perspective;
+
+    VolumeGenerator* m_volgen;
 };
 //! [3]
 

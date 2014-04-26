@@ -11,13 +11,18 @@
 
 #include "kernel.cuh"
 
+#include <iostream>
+
+using std::cout;
+using std::endl;
+
 static struct cudaGraphicsResource *pixelBuffer, *texture0, *texture1;
 
 typedef texture<uchar4, cudaTextureType2D, cudaReadModeElementType> inTexture2D;
 inTexture2D inTexture0, inTexture1;
 
 // volumetric texture
-texture<char,3,cudaReadModeElementType> texVolume;
+texture<byte,3,cudaReadModeElementType> texVolume;
 
 
 __device__
@@ -208,24 +213,55 @@ void runCuda(int width, int height, struct slice_params slice, struct camera_par
 }
 
 // load volumetric texture into the GPU
-void loadVolume(char* texels, size_t size, Vector3 dims) {
+void cudaLoadVolume(byte* texels, size_t size, Vector3 dims) {
 
-    cudaChannelFormatDesc channelDesc =
-            cudaCreateChannelDesc(dims.x, dims.y, dims.z, 1,cudaChannelFormatKindNone);
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<uchar1>();
 
+    cout << "mallocing texture array" << endl;
     cudaArray* tex_array;
-    cudaMallocArray(&tex_array,&channelDesc,size);
+    cudaExtent extent;
+    extent.width = dims.x;
+    extent.height = dims.y;
+    extent.depth = dims.z;
+    checkCudaErrors( cudaMalloc3DArray(&tex_array,&channelDesc,extent,0) );
+    cout << "texture array has been malloced" << endl;
 
-    cudaMemcpyToArray(tex_array,0,0,texels,size,cudaMemcpyHostToDevice);
+    cout << "size: " << size << endl;
 
-    texVolume.addressMode[0] = cudaAddressModeWrap;
-    texVolume.addressMode[1] = cudaAddressModeWrap;
-    texVolume.addressMode[2] = cudaAddressModeWrap;
-    texVolume.normalized = true;
+    cout << "memcopying texture array" << endl;
+    assert(texels);
+    assert(tex_array);
+    assert(size);
 
-    cudaBindTextureToArray(texVolume, tex_array, channelDesc);
+    int width = dims.x;
+    int height = dims.y;
+    int depth = dims.z;
 
+    cudaMemcpy3DParms params = {0};
+    params.srcPtr.pitch = sizeof(byte)*width;
+    params.srcPtr.ptr = texels;
+    params.srcPtr.xsize = width;
+    params.srcPtr.ysize = height;
 
+    params.srcPos.x = 0;
+    params.srcPos.y = 0;
+    params.srcPos.z = 0;
+
+    params.dstArray = tex_array;
+
+    params.dstPos.x = 0;
+    params.dstPos.y = 0;
+    params.dstPos.z = 0;
+
+    params.extent.width = width;
+    params.extent.depth = depth;
+    params.extent.height = height;
+
+    params.kind = cudaMemcpyHostToDevice;
+
+    checkCudaErrors( cudaMemcpy3D(&params) );
+
+    cout << "texture array has been memcopied" << endl;
 
 }
 

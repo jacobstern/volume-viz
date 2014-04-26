@@ -23,7 +23,7 @@ extern "C" {
     void registerCudaResources(GLuint input0, GLuint input1, GLuint output);
     void runCuda(int width, int height, struct slice_params slice, struct camera_params camera);
 
-    void loadVolume(char* texels, size_t size); // load volumetric texture
+    void cudaLoadVolume(byte* texels, size_t size, Vector3 dims); // load volumetric texture
 }
 
 #endif
