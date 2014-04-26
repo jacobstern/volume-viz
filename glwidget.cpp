@@ -66,7 +66,8 @@ static inline float glc( float normalized )
 
 //! [0]
 GLWidget::GLWidget(QWidget *parent)
-    : QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
+    : QGLWidget(QGLFormat(QGL::SampleBuffers), parent), prevFps(0), fps(0), prevTime(0),
+      font("Deja Vu Sans Mono", 8, 4)
 {
     logo = 0;
 
@@ -122,6 +123,8 @@ QSize GLWidget::sizeHint() const
 //! [6]
 void GLWidget::initializeGL()
 {
+    time.start();
+
     glClearColor(0.0, 0.0, 0.0, 1.0);
 
     glEnable(GL_TEXTURE_2D);
@@ -139,6 +142,10 @@ void GLWidget::initializeGL()
 //! [7]
 void GLWidget::paintGL()
 {
+    int ticks = time.elapsed();
+    fps = 1000.f / ticks;
+    time.restart();
+
     int width = this->width(), height = this->height();
 
     glEnable(GL_CULL_FACE);
@@ -222,8 +229,21 @@ void GLWidget::paintGL()
 
     drawTextureQuad();
 
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
     if (isDragging)
         showDragUI();
+
+    glUseProgram( 0 );
+
+    glPushMatrix();
+    glLoadIdentity();
+
+    glColor4f(1.f, 1.f, 1.f, 1.f);
+    renderText(10, 20, "FPS: " + QString::number((float) (fps)), font);
+
+    glPopMatrix();
 }
 //! [7]
 
