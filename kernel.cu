@@ -23,10 +23,22 @@ float vectorLength(float3 vec)
 }
 
 __device__
-float blockMin(float shared[], float poll)
+float blockMin(float shared[], int idx, int upper, float poll)
 {
-    shared[threadIdx.x] = poll;
+    shared[idx] = poll;
+
     __syncthreads();
+
+    float min = shared[idx];
+
+    for (int i = 0; i < upper; i++) {
+        float compare = shared[i];
+        if (compare < min) {
+            min = compare;
+        }
+    }
+
+    return min;
 }
 
 __device__
@@ -72,23 +84,28 @@ void kernel(void *buffer,
 
     int slabY = y - slabLowerY,
         slabX = x - slabLowerX,
-        slabIndex = slabY * slabWidth + slabX;
+        slabIndex = slabY * slabWidth + slabX,
+        slabUpper = slabHeight * slabWidth;
 
     if (index < width * height) {
 
         uchar4 sample0 = tex2D( inTexture0, x, y ),
                sample1 = tex2D( inTexture1, x, y );
 
-        pixels[index] = sample0;
+        float3 front = make_float3(sample0.x / 255.f, sample0.y / 255.f, sample0.z / 255.f),
+               back  = make_float3(sample1.x / 255.f, sample1.y / 255.f, sample1.z / 255.f),
+               dist  = back - front;
+
+        float3 camDist = front
+                         - make_float3( camera.origin[0], camera.origin[1], camera.origin[2] );
+        float camLength = vectorLength(camDist);
+
+        float desired = blockMin((float*)sharedMemory, slabIndex, slabUpper, camLength);
 
         if (sample0.w < 0xff || sample1.w < 0xff) {
             pixels[index] = make_uchar4(1, 0, 0, 1);
             return;
         }
-
-        float3 front = make_float3(sample0.x / 255.f, sample0.y / 255.f, sample0.z / 255.f),
-               back  = make_float3(sample1.x / 255.f, sample1.y / 255.f, sample1.z / 255.f),
-               dist  = back - front;
 
         float length = vectorLength(dist);
         if (length < 0.001f) {
@@ -98,43 +115,41 @@ void kernel(void *buffer,
 
         float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
 
-        float3 camDist = front
-                         - make_float3( camera.origin[0], camera.origin[1], camera.origin[2] );
-        float camLength = vectorLength(camDist);
+        //pixels[index] = make_uchar4(camLength / 8.f * 0xff, camLength / 8.f * 0xff, camLength / 8.f * 0xff, 0xff );
+        pixels[index] = make_uchar4(desired / 8.f * 0xff, desired / 8.f * 0xff, desired / 8.f * 0xff, 0xff );
 
-        float desired = blockMin((float*)sharedMemory, camLength);
 
-        float3 ray   = dist / length,
-               step  = ray * sqrtf(3) / MAX_STEPS,
-               pos   = front;
+//        float3 ray   = dist / length,
+//               step  = ray * sqrtf(3) / MAX_STEPS,
+//               pos   = front;
 
-        for (int i = 0; i < MAX_STEPS; ++i) {
-            pos += step;
-            if (pos.x > 1.0f || pos.x < 0.0f
-                    || pos.y > 1.0f || pos.y < 0.0f
-                    || pos.z > 1.0f || pos.z < 0.0f) {
-                break;
-            }
+//        for (int i = 0; i < MAX_STEPS; ++i) {
+//            pos += step;
+//            if (pos.x > 1.0f || pos.x < 0.0f
+//                    || pos.y > 1.0f || pos.y < 0.0f
+//                    || pos.z > 1.0f || pos.z < 0.0f) {
+//                break;
+//            }
 
-            float4 vox = sampleVolume(pos);
+//            float4 vox = sampleVolume(pos);
 
-            accum.x += vox.x * vox.w * (1.f - accum.w);
-            accum.y += vox.y * vox.w * (1.f - accum.w);
-            accum.z += vox.z * vox.w * (1.f - accum.w);
-            accum.w += vox.w * (1.f - accum.w);
+//            accum.x += vox.x * vox.w * (1.f - accum.w);
+//            accum.y += vox.y * vox.w * (1.f - accum.w);
+//            accum.z += vox.z * vox.w * (1.f - accum.w);
+//            accum.w += vox.w * (1.f - accum.w);
 
-            if (accum.w > .95f) {
-                break;
-            }
-        }
-        // accum = make_float4(fabs(ray.x), fabs(ray.y), fabs(ray.z), 1.0f);
+//            if (accum.w > .95f) {
+//                break;
+//            }
+//        }
+//        // accum = make_float4(fabs(ray.x), fabs(ray.y), fabs(ray.z), 1.0f);
 
-        accum.x = fminf(accum.x, 1.f);
-        accum.y = fminf(accum.y, 1.f);
-        accum.z = fminf(accum.z, 1.f);
-        accum.w = fminf(accum.w, 1.f);
+//        accum.x = fminf(accum.x, 1.f);
+//        accum.y = fminf(accum.y, 1.f);
+//        accum.z = fminf(accum.z, 1.f);
+//        accum.w = fminf(accum.w, 1.f);
 
-        pixels[index] = make_uchar4(accum.x * 0xff, accum.y * 0xff, accum.z * 0xff, accum.w * 0xff);
+//        pixels[index] = make_uchar4(accum.x * 0xff, accum.y * 0xff, accum.z * 0xff, accum.w * 0xff);
     }
 }
 
@@ -179,7 +194,7 @@ void runCuda(int width, int height, struct slice_params slice, struct camera_par
     if (height % blockSize.y)
         ++blockDims.y;
 
-    kernel<<< blockDims, blockSize >>>(devBuffer, width, height, slice, camera);
+    kernel<<< blockDims, blockSize, 512 * sizeof(float) >>>(devBuffer, width, height, slice, camera);
 
     checkCudaErrors( cudaUnbindTexture(inTexture0) );
 
