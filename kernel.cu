@@ -16,6 +16,10 @@ static struct cudaGraphicsResource *pixelBuffer, *texture0, *texture1;
 typedef texture<uchar4, cudaTextureType2D, cudaReadModeElementType> inTexture2D;
 inTexture2D inTexture0, inTexture1;
 
+// volumetric texture
+texture<char,3,cudaReadModeElementType> texVolume;
+
+
 __device__
 float vectorLength(float3 vec)
 {
@@ -202,3 +206,31 @@ void runCuda(int width, int height, struct slice_params slice, struct camera_par
 
     checkCudaErrors( cudaGraphicsUnmapResources(3, resources) );
 }
+
+// load volumetric texture into the GPU
+void loadVolume(char* texels, size_t size, Vector3 dims) {
+
+    cudaChannelFormatDesc channelDesc =
+            cudaCreateChannelDesc(dims.x, dims.y, dims.z, 1,cudaChannelFormatKindNone);
+
+    cudaArray* tex_array;
+    cudaMallocArray(&tex_array,&channelDesc,size);
+
+    cudaMemcpyToArray(tex_array,0,0,texels,size,cudaMemcpyHostToDevice);
+
+    texVolume.addressMode[0] = cudaAddressModeWrap;
+    texVolume.addressMode[1] = cudaAddressModeWrap;
+    texVolume.addressMode[2] = cudaAddressModeWrap;
+    texVolume.normalized = true;
+
+    cudaBindTextureToArray(texVolume, tex_array, channelDesc);
+
+
+
+}
+
+
+
+
+
+

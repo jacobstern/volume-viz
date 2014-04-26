@@ -3,6 +3,8 @@
 
 #include <GL/gl.h>
 
+#include "volumegenerator.h"
+
 extern "C" {
 
 #define SLICE_NONE  -1
@@ -20,6 +22,8 @@ extern "C" {
     void initCuda();
     void registerCudaResources(GLuint input0, GLuint input1, GLuint output);
     void runCuda(int width, int height, struct slice_params slice, struct camera_params camera);
+
+    void loadVolume(char* texels, size_t size); // load volumetric texture
 }
 
 #endif
