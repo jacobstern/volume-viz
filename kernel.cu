@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include "kernel.cuh"
+#include "implicit.cu"
 
 static struct cudaGraphicsResource *pixelBuffer, *texture0, *texture1;
 
@@ -113,15 +114,17 @@ void kernel(void *buffer,
             return;
         }
 
+
         float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
 
-//         pixels[index] = make_uchar4(camLength / 8.f * 0xff, camLength / 8.f * 0xff, camLength / 8.f * 0xff, 0xff );
-//         pixels[index] = make_uchar4(desired / 8.f * 0xff, desired / 8.f * 0xff, desired / 8.f * 0xff, 0xff );
+////         pixels[index] = make_uchar4(camLength / 8.f * 0xff, camLength / 8.f * 0xff, camLength / 8.f * 0xff, 0xff );
+////         pixels[index] = make_uchar4(desired / 8.f * 0xff, desired / 8.f * 0xff, desired / 8.f * 0xff, 0xff );
 
 
         float3 ray   = dist / length,
                step  = ray * sqrtf(3) / MAX_STEPS,
                pos   = front;
+
 
         for (int i = 0; i < MAX_STEPS; ++i) {
             pos += step;

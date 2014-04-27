@@ -21,7 +21,8 @@ OTHER_FILES += kernel.cu \
     screen.frag \
     screen.vert \
     ui.frag \
-    ui.vert
+    ui.vert \
+    implicit.cu
 CUDA_SOURCES += kernel.cu
 
 # paths to cuda sdk on filesystem
