@@ -1,7 +1,7 @@
 #include <helper_math.h>
 
 __device__
-bool ray_inter_plane(float3 p0, float3 n, float3 l0, float3 l, float &t)
+bool intersectPlaneAndRay(float3 p0, float3 n, float3 l0, float3 l, float &t)
 {
     // from scratchapixel.com
     float denom = dot(n, l);
@@ -17,7 +17,7 @@ bool ray_inter_plane(float3 p0, float3 n, float3 l0, float3 l, float &t)
 }
 
 __device__
-bool ray_inter_sphere(float3 p0, float r, float3 l0, float3 l, float &t)
+bool intersectSphereAndRay(float3 p0, float r, float3 l0, float3 l, float &t)
 {
     float3 l0p0 = l0 - p0;
 
