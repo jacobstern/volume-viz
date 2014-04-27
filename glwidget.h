@@ -48,6 +48,9 @@
 
 #include <QTime>
 
+#include <cuda.h>
+#include <cuda_gl_interop.h>
+
 #include "camera.h"
 #include "volumegenerator.h"
 
@@ -115,6 +118,8 @@ private:
     QMatrix4x4 perspective;
 
     VolumeGenerator* m_volgen;
+
+    cudaArray* m_volumeArray;
 };
 //! [3]
 

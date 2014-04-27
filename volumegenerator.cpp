@@ -16,7 +16,7 @@ VolumeGenerator::VolumeGenerator(int x, int y, int z)
 
     int lim = x*y*z;
     for(int i=0; i<lim; i++){
-        m_volume[i] = '\0';
+        m_volume[i] = (byte)0;
     }
 }
 
@@ -28,37 +28,89 @@ VolumeGenerator::~VolumeGenerator()
 
 void VolumeGenerator::drawEllipsoid(const Point3& center, const Vector3& axes, const byte& color) // TODO: Implement full color later, grayscale for now
 {
+    float fi;
+    float fj;
+    float fk;
+
     // encoded in z-y-x-order
     for(int k=0; k<m_z; k++){
         for(int j=0; j<m_y; j++){
             for(int i=0; i<m_x; i++){
-                int offset = k*m_z*m_y + j*m_y + i;
+                int offset = k*m_y*m_x + j*m_x + i;
                 const Point3& c = center;
                 const Vector3& a = axes;
-                m_volume[offset] = (((((c.x-i)/a.x) * ((c.x-i)/a.x))
-                                     + (((c.y-j)/a.y) * ((c.y-j)/a.y))
-                                    + (((c.z-k)/a.z) * ((c.z-k)/a.z))) < 1.0f) ?
+                fi = ((float)i)/((float)m_x);
+                fj = ((float)j)/((float)m_y);
+                fk = ((float)k)/((float)m_z);
+
+//                cout << "fi: " << fi << ", fj: " << fj << ", fk: " << fk << endl;
+
+                assert(fi >= 0.0);
+                assert(fi <= 1.0);
+                assert(fj >= 0.0);
+                assert(fj <= 1.0);
+                assert(fk >= 0.0);
+                assert(fk <= 1.0);
+
+                m_volume[offset] = (((((c.x-fi)/a.x) * ((c.x-fi)/a.x))
+                                     + (((c.y-fj)/a.y) * ((c.y-fj)/a.y))
+                                    + (((c.z-fk)/a.z) * ((c.z-fk)/a.z))) < 1.0) ?
                             color :
+//                            (m_volume[offset] == (byte)3 ? (byte)0 : m_volume[offset]);
                             m_volume[offset];
+
+
+
+
+//                            (byte)2;
+
+//                m_volume[offset] = (c.x-fi)*(c.x-fi) + (c.y-fj)*(c.y-fj) + (c.z-fk)*(c.z-fk) <= 0.25 ? byte(2) : byte(3);
+
+
+
+//                if(fi >= 0.00 && fi <= 0.35){
+//                    m_volume[offset] = (byte)1;
+//                }
+
+//                if(fi >= 0.35 && fi <= 0.65){
+//                    m_volume[offset] = (byte)2;
+//                }
+
+//                if(fi >= 0.65 && fi <= 1.0){
+//                    m_volume[offset] = (byte)3;
+//                }
+
+                if(fi >= 0.99){
+                    m_volume[offset] = (byte)4;
+                }
+
+//                m_volume[offset] = (byte)100;
             }
         }
     }
+
+
+
+    cout << "max fi,fj,fk: " << fi << ", " << fj << ", " << fk << endl;
 }
 
 // shortcut to draw simple brain-like structure
 void VolumeGenerator::drawDefaultBrain()
 {
-    Point3 centers[2] = {Point3(50.0f, 28.0f, 50.0f), Point3(50.0f, 72.0f, 50.0f)};
+    Point3 centers[2] = {Point3(0.25f, 0.50f, 0.50f), Point3(0.75f, 0.50f, 0.50f)};
 
-    Vector3 layers[4] = {Vector3(45.0f, 25.0f, 30.0f),
-                        Vector3(40.0f, 20.0f, 50.0f),
-                        Vector3(30.0f, 10.0f, 13.0f),
-                        Vector3(20.0f, 3.0f, 8.0f)};
+    Vector3 layers[4] = {Vector3(0.23f, 0.30f, 0.45f),
+                        Vector3(0.18f, 0.27f, 0.40f),
+                        Vector3(0.10f, 0.23f, 0.30f),
+                        Vector3(0.03f, 0.20f, 0.20f)};
 
-    char shades[4] = {(byte)0.5, (byte)0.6, (byte)0.8, (byte)1.0};
+//    Vector3 layers[1] = {Vector3(0.15f, 0.25f, 0.47f)};
+
+    byte shades[4] = {(byte)(60), (byte)(80), (byte)(100), (byte)(120)};
 
     for(int center_idx=0; center_idx<2; center_idx++){
         for(int layer_idx=0; layer_idx<4; layer_idx++){
+            printf("%u\n", shades[layer_idx]);
             this->drawEllipsoid(centers[center_idx], layers[layer_idx], shades[layer_idx]);
         }
     }
@@ -72,7 +124,7 @@ string VolumeGenerator::volume2csv()
         for(int j=0; j<m_y; j++){
             for(int i=0; i<m_x; i++){
                 int offset = k*m_z*m_y + j*m_y + i;
-                os << m_volume[offset] << ",";
+                os << (int)m_volume[offset] << ",";
             }
             os << "\t";
         }

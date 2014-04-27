@@ -2,7 +2,8 @@ HEADERS       = glwidget.h \
                 window.h \
                 qtlogo.h \
     camera.h \
-    volumegenerator.h
+    volumegenerator.h \
+    params.h
 SOURCES       = glwidget.cpp \
                 main.cpp \
                 window.cpp \

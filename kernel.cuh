@@ -3,6 +3,10 @@
 
 #include <GL/gl.h>
 
+
+#include <cuda.h>
+#include <cuda_gl_interop.h>
+
 #include "volumegenerator.h"
 
 extern "C" {
@@ -21,9 +25,11 @@ extern "C" {
 
     void initCuda();
     void registerCudaResources(GLuint input0, GLuint input1, GLuint output);
-    void runCuda(int width, int height, struct slice_params slice, struct camera_params camera);
+    void runCuda(int width, int height, struct slice_params slice, struct camera_params camera,
+                 cudaArray* volumeArray);
 
-    void cudaLoadVolume(byte* texels, size_t size, Vector3 dims); // load volumetric texture
+    void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
+                        cudaArray** volumeArray); // load volumetric texture
 }
 
 #endif

@@ -10,6 +10,9 @@
 #include <stdio.h>
 
 #include "kernel.cuh"
+#include "cuPrintf.cu"
+#include "assert.h"
+#include "params.h"
 
 #include <iostream>
 
@@ -54,20 +57,53 @@ __device__
 float4 sampleVolume(float3 pos)
 {
     // TODO: Sample from volume texture
-    if (pos.x > 1.f || pos.y > 1.f || pos.z > 1.f
-            || pos.x < 0.f || pos.y < 0.f || pos.z < 0.f) {
-        return make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+//    if (pos.x > 1.f || pos.y > 1.f || pos.z > 1.f
+//            || pos.x < 0.f || pos.y < 0.f || pos.z < 0.f) {
+//        return make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+//    }
+
+//    if ((pos.x - .5f) * (pos.x - .5f) + (pos.z - .5f) * (pos.z - .5f) < .25) {
+//       return make_float4(1.f, 1.f, 1.f, 0.01f);
+//    }
+//    else {
+//       return make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+//    }
+
+    if(pos.x < 0.0 || pos.x > 1.0 || pos.y < 0.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0){
+        return make_float4(1.0, 0, 0, 1.0);
     }
 
-    if ((pos.x - .5f) * (pos.x - .5f) + (pos.z - .5f) * (pos.z - .5f) < .25) {
-       return make_float4(1.f, 1.f, 1.f, 0.01f);
+    float cof = STEP_SIZE*STEP_SIZE*STEP_SIZE/23;
+    float x = pos.x*cof;
+    float y = pos.y*cof;
+    float z = pos.z*cof;
+
+    byte sample = tex3D(texVolume, x, y, z);
+
+    if(sample == 1){
+        return make_float4(0.5, 0.0, 0, 1);
+
+    }else if(sample == 2){
+        return make_float4(0.0, 0.5, 0.0, 1);
+
+    }else if(sample == 3){
+        return make_float4(0.0, 0.0, 0.5, 1);
+
+    }else if(sample == 4){
+        return make_float4(0.0, 0.5, 0.5, 1);
+
+    }else if(sample == 5){
+        return make_float4(0.5, 0.0, 0.5, 1);
+
+    }else{
+        return make_float4(sample, sample, sample, 0.05)/8;
     }
-    else {
-       return make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    }
+
+//    return make_float4(sample, sample, sample, 0.05)/122;
 }
 
-#define MAX_STEPS 63 // TODO: Turn up to 128 for Sunlab machines
+//#define MAX_STEPS 63 // TODO: Turn up to 128 for Sunlab machines
+#define MAX_STEPS 64
 
 __global__
 void kernel(void *buffer,
@@ -141,6 +177,7 @@ void kernel(void *buffer,
             }
 
             float4 vox = sampleVolume(pos);
+
             if (vox.w > 1e-6) {
                 accum.x += vox.x * vox.w * (1.f - accum.w);
                 accum.y += vox.y * vox.w * (1.f - accum.w);
@@ -179,7 +216,8 @@ void registerCudaResources(GLuint input0, GLuint input1, GLuint output) {
     checkCudaErrors( cudaGraphicsGLRegisterBuffer(&pixelBuffer, output, cudaGraphicsRegisterFlagsWriteDiscard) );
 }
 
-void runCuda(int width, int height, struct slice_params slice, struct camera_params camera) {
+void runCuda(int width, int height, struct slice_params slice, struct camera_params camera,
+             cudaArray* volumeArray) {
     cudaGraphicsResource_t resources[3] = { texture0, texture1, pixelBuffer };
 
     checkCudaErrors( cudaGraphicsMapResources(3, resources) );
@@ -204,6 +242,9 @@ void runCuda(int width, int height, struct slice_params slice, struct camera_par
     if (height % blockSize.y)
         ++blockDims.y;
 
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<uchar1>();
+    checkCudaErrors( cudaBindTextureToArray(texVolume, volumeArray, channelDesc));
+
     size_t sharedMemSize = ( MAX_STEPS + 1 ) * blockSize.x * blockSize.y * sizeof(unsigned char);
     kernel<<< blockDims, blockSize, sharedMemSize >>>(devBuffer, width, height, slice, camera);
 
@@ -213,7 +254,8 @@ void runCuda(int width, int height, struct slice_params slice, struct camera_par
 }
 
 // load volumetric texture into the GPU
-void cudaLoadVolume(byte* texels, size_t size, Vector3 dims) {
+void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
+                    cudaArray** volumeArray) {
 
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<uchar1>();
 
@@ -261,7 +303,59 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims) {
 
     checkCudaErrors( cudaMemcpy3D(&params) );
 
+    checkCudaErrors( cudaBindTextureToArray(texVolume, tex_array, channelDesc));
+
     cout << "texture array has been memcopied" << endl;
+
+
+    cout << "copying data back for testing" << endl;
+
+    // Sanity check: Copy texture back
+    byte* back_texels = new byte[size];
+    memset(back_texels, '\0', size);
+
+
+    cudaMemcpy3DParms back_params = {0};
+
+    back_params.dstPtr.pitch = sizeof(byte) * width;
+    back_params.dstPtr.ptr = back_texels;
+    back_params.dstPtr.xsize = width;
+    back_params.dstPtr.ysize = height;
+
+    back_params.srcPos.x = 0;
+    back_params.srcPos.y = 0;
+    back_params.srcPos.z = 0;
+
+    back_params.srcArray = tex_array;
+
+    back_params.dstPos.x = 0;
+    back_params.dstPos.y = 0;
+    back_params.dstPos.z = 0;
+
+    back_params.extent.width = width;
+    back_params.extent.depth = depth;
+    back_params.extent.height = height;
+
+    back_params.kind = cudaMemcpyDeviceToHost;
+
+    cout << "invoking" << endl;
+    checkCudaErrors( cudaMemcpy3D(&back_params) );
+
+
+    // TODO: Copy back for sanity check!
+    for(int i=0; i<size; i++){
+        if(texels[i] != back_texels[i]){
+            printf("i: %d, texels: %u, back_texels: %u\n", i, texels[i], back_texels[i]);
+            assert(false);
+
+
+        }
+    }
+
+    *volumeArray = tex_array;
+
+    cout << "data has been copied back for testing" << endl;
+
 
 }
 

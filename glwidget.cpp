@@ -49,6 +49,8 @@
 #include "qtlogo.h"
 #include "kernel.cuh"
 
+#include "params.h"
+
 using std::cout;
 using std::endl;
 
@@ -221,7 +223,7 @@ void GLWidget::paintGL()
     cameraParams.origin[1] = pos.y();
     cameraParams.origin[2] = pos.z();
 
-    runCuda( width, height, sliceParams, cameraParams );
+    runCuda( width, height, sliceParams, cameraParams, m_volumeArray);
 
     glBindBuffer( GL_PIXEL_UNPACK_BUFFER, resultBuffer);
 
@@ -546,9 +548,9 @@ void GLWidget::loadShaderProgram(QGLShaderProgram &program, QString name)
 void GLWidget::loadVolume()
 {
     // NOTE: Use hardcoded default for now
-    int width = 128;
-    int height = 128;
-    int depth = 128;
+    int width = VOLUME_RESOLUTION;
+    int height = VOLUME_RESOLUTION;
+    int depth = VOLUME_RESOLUTION;
 
     cout << "Generating mock voltex" << endl;
     m_volgen = new VolumeGenerator(width, height, depth);
@@ -561,8 +563,11 @@ void GLWidget::loadVolume()
     assert(size == width*height*depth*sizeof(byte));
 
     cout << "Loading mock voltex into CUDA" << endl;
-    cudaLoadVolume(texels, size, Vector3(width,height,depth));
+    cudaLoadVolume(texels, size, Vector3(width,height,depth), &m_volumeArray);
     cout << "Mock voltex has been loaded into CUDA" << endl;
+
+//    char* path = "/home/rmartens/volume-texture.csv";
+//    m_volgen->saveas_csv(path);
 
     // TODO: Error checking!
     delete m_volgen;
