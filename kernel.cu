@@ -18,6 +18,7 @@
 
 using std::cout;
 using std::endl;
+#include "implicit.cu"
 
 static struct cudaGraphicsResource *pixelBuffer, *texture0, *texture1;
 
@@ -154,10 +155,7 @@ void kernel(void *buffer,
 
         // Note: all threads in block where index < width * height
         // MUST execute this function. Also NB this includes a thread barrier.
-        // float desired = blockMin((float*)sharedMemory, slabIndex, slabUpper, camLength);
-
-        // Update front based on desired distance from camera
-        // front = camPos + (camDist / camLength) * desired;
+        float rad = blockMin((float*)sharedMemory, slabIndex, slabUpper, camLength);
 
         float3 dist = back - front;
         float length = vectorLength(dist);
@@ -167,26 +165,39 @@ void kernel(void *buffer,
             return;
         }
 
-        float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
-
-//         pixels[index] = make_uchar4(camLength / 8.f * 0xff, camLength / 8.f * 0xff, camLength / 8.f * 0xff, 0xff );
-//         pixels[index] = make_uchar4(desired / 8.f * 0xff, desired / 8.f * 0xff, desired / 8.f * 0xff, 0xff );
-
-
         float3 ray   = dist / length,
                step  = ray * sqrtf(3) / MAX_STEPS,
                pos   = front;
 
-        for (int i = 0; i < MAX_STEPS; ++i) {
-            pos += step;
-            if (pos.x > 1.0f || pos.x < 0.0f
-                    || pos.y > 1.0f || pos.y < 0.0f
-                    || pos.z > 1.0f || pos.z < 0.0f) {
+        float t;
+        bool success = intersectSphereAndRay(camPos, rad, front, -ray, t);
+        if (success) {
+            // Update front based on desired distance from camera
+
+            pos = pos - ray * t;
+
+//            float test = vectorLength(camPos - pos) / 8.f;
+//            pixels[index] = make_uchar4(test * 0xff, test * 0xff, test * 0xff, 0xff);
+//            return;
+        }
+
+        float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
+
+        int i = 0;
+        float4 vox = make_float4(0.f, 0.f, 0.f, 0.f);
+
+        for (; i < MAX_STEPS; ++i) {
+            vox = sampleVolume(pos);
+
+            if (vox.w > 1e-6) {
                 break;
             }
+            
+            pos += step;
+        }
 
-            float4 vox = sampleVolume(pos);
 
+        for (; i < MAX_STEPS; ++i) {
             if (vox.w > 1e-6) {
                 accum.x += vox.x * vox.w * (1.f - accum.w);
                 accum.y += vox.y * vox.w * (1.f - accum.w);
@@ -197,6 +208,16 @@ void kernel(void *buffer,
                     break;
                 }
             }
+
+            pos += step;
+
+            if (pos.x > 1.0f || pos.x < 0.0f
+                    || pos.y > 1.0f || pos.y < 0.0f
+                    || pos.z > 1.0f || pos.z < 0.0f) {
+                break;
+            }
+
+            vox = sampleVolume(pos);
         }
         // accum = make_float4(fabs(ray.x), fabs(ray.y), fabs(ray.z), 1.0f);
 
