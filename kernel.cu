@@ -73,31 +73,40 @@ float4 sampleVolume(float3 pos)
         return make_float4(1.0, 0, 0, 1.0);
     }
 
-    float cof = STEP_SIZE*STEP_SIZE*STEP_SIZE/23;
+//    float cof = STEP_SIZE*STEP_SIZE*STEP_SIZE/23;
+    float cof = 1.0;
     float x = pos.x*cof;
     float y = pos.y*cof;
     float z = pos.z*cof;
 
     byte sample = tex3D(texVolume, x, y, z);
+    float s = ((float)sample)/255.0;
 
-    if(sample == 1){
-        return make_float4(0.5, 0.0, 0, 1);
+    float r = s;
+    float g = s;
+    float b = 5*s;
+    float a = 0.05;
 
-    }else if(sample == 2){
-        return make_float4(0.0, 0.5, 0.0, 1);
+    return make_float4(r, g, b, a);
 
-    }else if(sample == 3){
-        return make_float4(0.0, 0.0, 0.5, 1);
+//    if(sample == 1){
+//        return make_float4(0.5, 0.0, 0, 1);
 
-    }else if(sample == 4){
-        return make_float4(0.0, 0.5, 0.5, 1);
+//    }else if(sample == 2){
+//        return make_float4(0.0, 0.5, 0.0, 1);
 
-    }else if(sample == 5){
-        return make_float4(0.5, 0.0, 0.5, 1);
+//    }else if(sample == 3){
+//        return make_float4(0.0, 0.0, 0.5, 1);
 
-    }else{
-        return make_float4(sample, sample, sample, 0.05)/8;
-    }
+//    }else if(sample == 4){
+//        return make_float4(0.0, 0.5, 0.5, 1);
+
+//    }else if(sample == 5){
+//        return make_float4(0.5, 0.0, 0.5, 1);
+
+//    }else{
+//        return make_float4(sample, sample, sample, 0.05)/8;
+//    }
 
 //    return make_float4(sample, sample, sample, 0.05)/122;
 }
@@ -300,6 +309,14 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
     params.extent.height = height;
 
     params.kind = cudaMemcpyHostToDevice;
+
+
+    // set addressmode
+    texVolume.addressMode[0] = cudaAddressModeWrap;
+    texVolume.addressMode[1] = cudaAddressModeWrap;
+    texVolume.addressMode[2] = cudaAddressModeWrap;
+    texVolume.normalized = true;
+
 
     checkCudaErrors( cudaMemcpy3D(&params) );
 
