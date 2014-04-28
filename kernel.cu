@@ -116,7 +116,7 @@ void rayMarch(unsigned char sharedMemory[], float3 origin, float3 step, dim3 cac
 }
 
 __device__
-float4 shade(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim) {
+float4 shadeTransfer(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim) {
     unsigned char upper = sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ];
     float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
 
@@ -155,63 +155,70 @@ void kernel(void *buffer,
     extern __shared__ unsigned char sharedMemory[];
     uchar4 *pixels = (uchar4*) buffer;
 
-    int x = blockIdx.x * blockDim.x + threadIdx.x,
-        y = blockIdx.y * blockDim.y + threadIdx.y;
+    int x = blockIdx.x * (blockDim.x - 2) + ( ( (int) threadIdx.x ) - 1),
+        y = blockIdx.y * (blockDim.y - 2) + ( ( (int) threadIdx.y ) - 1);
 
-    int index = y * width + x;
-
-    int slabUpperX = min( (blockIdx.x + 1) * blockDim.x, width ),
-        slabUpperY = min( (blockIdx.y + 1) * blockDim.y, height),
-        slabLowerX = blockIdx.x * blockDim.x,
-        slabLowerY = blockIdx.y * blockDim.y,
+    int slabUpperX = min( (blockIdx.x + 1) * (blockDim.x - 2) + 1, width - 1  ),
+        slabUpperY = min( (blockIdx.y + 1) * (blockDim.y - 2) + 1, height - 1 ),
+        slabLowerX = max( (int) (blockIdx.x  * (blockDim.x - 2)) - 1, 0),
+        slabLowerY = max( (int) (blockIdx.y  * (blockDim.y - 2)) - 1, 0),
         slabWidth  = slabUpperX - slabLowerX,
         slabHeight = slabUpperY - slabLowerY;
+
+    bool isBorder = threadIdx.x == 0 || threadIdx.y == 0
+            || threadIdx.x + 1 == blockDim.x || threadIdx.y + 1 == blockDim.y;
+
+    x = clamp(x, slabLowerX, slabUpperX - 1);
+    y = clamp(y, slabLowerY, slabUpperY - 1);
+
+    int index = y * width + x;
 
     int slabY = y - slabLowerY,
         slabX = x - slabLowerX,
         slabIndex = slabY * slabWidth + slabX,
         slabUpper = slabHeight * slabWidth;
 
-    if (index < width * height) {
-        uchar4 sample0 = tex2D( inTexture0, x, y ),
-               sample1 = tex2D( inTexture1, x, y );
+    uchar4 sample0 = tex2D( inTexture0, x, y ),
+           sample1 = tex2D( inTexture1, x, y );
 
-        float3 front = make_float3(sample0.x / 255.f, sample0.y / 255.f, sample0.z / 255.f),
-               back  = make_float3(sample1.x / 255.f, sample1.y / 255.f, sample1.z / 255.f);
+    float3 front = make_float3(sample0.x / 255.f, sample0.y / 255.f, sample0.z / 255.f),
+           back  = make_float3(sample1.x / 255.f, sample1.y / 255.f, sample1.z / 255.f);
 
-        float3  camPos  = make_float3( camera.origin[0], camera.origin[1], camera.origin[2] ),
-                camDist = front - camPos;
-        float camLength = vectorLength(camDist);
+    float3  camPos  = make_float3( camera.origin[0], camera.origin[1], camera.origin[2] ),
+            camDist = front - camPos;
+    float camLength = vectorLength(camDist);
 
-        // Note: all threads in block where index < width * height
-        // MUST execute this function. Also NB this includes a thread barrier.
-        float rad = blockMin((float*)sharedMemory, slabIndex, slabUpper, camLength);
+    // Note: all threads in block where index < width * height
+    // MUST execute this function. Also NB this includes a thread barrier.
+    float rad = blockMin((float*)sharedMemory, slabIndex, slabUpper, camLength);
 
-        float3 dist = back - front;
-        float length = vectorLength(dist);
+    float3 dist = back - front;
+    float length = vectorLength(dist);
 
-        if (length < 0.001f) {
-            // TODO: set a better min value if this happens
-            pixels[index] = make_uchar4(0, 0, 0, 0);
-            return;
-        }
+    if (length < 0.001f && !isBorder) {
+        // TODO: set a better min value if this happens
+        pixels[index] = make_uchar4(0, 0, 0, 0);
+        return;
+    }
 
-        float3 ray   = dist / length,
-               step  = ray * sqrtf(3) / MAX_STEPS,
-               pos   = front;
+    float3 ray   = dist / length,
+           step  = ray * sqrtf(3) / MAX_STEPS,
+           pos   = front;
 
-        float t;
-        bool success = intersectSphereAndRay(camPos, rad, front, -ray, t);
-        if (success) {
-            // Update front based on desired distance from camera
-            pos = pos - ray * t;
-        }
+    float t;
+    bool success = intersectSphereAndRay(camPos, rad, front, -ray, t);
+    if (success) {
+        // Update front based on desired distance from camera
+        pos = pos - ray * t;
+    }
 
-        dim3 cacheIdx(slabX, slabY),
-             cacheDim(slabWidth, slabHeight);
+    dim3 cacheIdx(slabX, slabY),
+         cacheDim(slabWidth, slabHeight);
 
-        rayMarch(sharedMemory, pos, step, cacheIdx, cacheDim);
-        float4 shaded = shade(sharedMemory, cacheIdx, cacheDim);
+    rayMarch(sharedMemory, pos, step, cacheIdx, cacheDim);
+
+    if (!isBorder) {
+        float4 shaded = shadeTransfer(sharedMemory, cacheIdx, cacheDim);
 
         pixels[index] = make_uchar4(shaded.x * 0xff, shaded.y * 0xff, shaded.z * 0xff, shaded.w * 0xff);
     }
@@ -258,7 +265,10 @@ void runCuda(int width, int height, struct slice_params slice, struct camera_par
     if (height % blockSize.y)
         ++blockDims.y;
 
-    size_t sharedMemSize = ( MAX_STEPS + 1 ) * blockSize.x * blockSize.y * sizeof(unsigned char);
+    blockSize.x += 2;
+    blockSize.y += 2;
+
+    size_t sharedMemSize = ( MAX_STEPS + 1 ) * ( blockSize.x ) * ( blockSize.y ) * sizeof( unsigned char );
     kernel<<< blockDims, blockSize, sharedMemSize >>>(devBuffer, width, height, slice, camera);
 
     checkCudaErrors( cudaUnbindTexture(inTexture0) );
