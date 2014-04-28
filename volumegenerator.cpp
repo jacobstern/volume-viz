@@ -142,7 +142,7 @@ void VolumeGenerator::saveas_csv(char *path)
     dest.close();
 }
 
-void VolumeGenerator::saveas_raw(char *path)
+void VolumeGenerator::saveas_raw(char *path, bool header)
 {
     cout << "writing data to output file" << endl;
     ofstream dest;
@@ -150,18 +150,20 @@ void VolumeGenerator::saveas_raw(char *path)
     size_t size = m_x * m_y * m_z * sizeof(byte);
     const char *ptr = (char*) m_volume;
 
-    cout << "writing sizes" << endl;
-    size_t size_x = (size_t)m_x;
-    size_t size_y = (size_t)m_y;
-    size_t size_z = (size_t)m_z;
+    if(header){
+        cout << "writing sizes" << endl;
+        size_t size_x = (size_t)m_x;
+        size_t size_y = (size_t)m_y;
+        size_t size_z = (size_t)m_z;
 
-//    dest.write(&size_x, sizeof(size_t));
+        cout << "size_x: " << size_x << endl;
+        cout << "size_y: " << size_y << endl;
+        cout << "size_z: " << size_z << endl;
 
-
-
-
-//    dest.write(&size_y, sizeof(size_t));
-//    dest.write(&size_z, size)
+        dest.write((char*)&size_x, sizeof(size_t));
+        dest.write((char*)&size_y, sizeof(size_t));
+        dest.write((char*)&size_z, sizeof(size_t));
+    }
 
     cout << "writing binary data" << endl;
     dest.write(ptr, size);
@@ -169,25 +171,46 @@ void VolumeGenerator::saveas_raw(char *path)
     cout << "data has been written to output file" << endl;
 }
 
-void VolumeGenerator::loadfrom_raw(char *source)
+void VolumeGenerator::loadfrom_raw(char *source, bool header)
 {
-//    cout << "reading meta data file" << endl;
-    cout << "skipping meta file; hardcode it for now" << endl;
-
     cout << "reading raw file" << endl;
     ifstream src;
     src.open(source, ios::in | ios::binary);
-    size_t size = 512*512*512*sizeof(byte);
-    m_x = 512;
-    m_y = 512;
-    m_z = 512;
+
+    if(header){
+        cout << "reading metadata" << endl;
+        size_t size_x;
+        size_t size_y;
+        size_t size_z;
+
+        src.read((char*)&size_x, sizeof(size_t));
+        src.read((char*)&size_y, sizeof(size_t));
+        src.read((char*)&size_z, sizeof(size_t));
+
+        cout << "size_x: " << size_x << endl;
+        cout << "size_y: " << size_y << endl;
+        cout << "size_z: " << size_z << endl;
+
+        m_x = (int)size_x;
+        m_y = (int)size_y;
+        m_z = (int)size_z;
+
+        cout << "m_x: " << m_x << endl;
+        cout << "m_y: " << m_y << endl;
+        cout << "m_z: " << m_z << endl;
+
+    }else{
+        m_x = 256;
+        m_y = 256;
+        m_z = 256;
+    }
+
+    size_t size = m_x*m_y*m_z*sizeof(byte);
 
     char *ptr = (char*) m_volume;
     src.read(ptr,size);
     src.close();
     cout << "raw file has been read" << endl;
-
-
 }
 
 byte* VolumeGenerator::getBytes(size_t& size)
