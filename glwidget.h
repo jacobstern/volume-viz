@@ -103,10 +103,6 @@ private:
     QGLShaderProgram firstPass, screen, ui;
     QGLFramebufferObject *framebuffers[GLWidget::N_FRAMEBUFFERS];
 
-    QTime time;
-
-    float prevFps, fps;
-    int prevTime;
     QFont font; // font for rendering text
 
     QMatrix4x4 perspective;

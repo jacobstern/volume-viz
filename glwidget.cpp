@@ -42,6 +42,7 @@
 #include <QtGui>
 #include <qgl.h>
 
+#include <ctime>
 #include <math.h>
 #include <iostream>
 
@@ -54,6 +55,8 @@ extern "C" {
     GLAPI void APIENTRY glBindBuffer (GLenum target, GLuint buffer);
     GLAPI void APIENTRY glGenBuffers (GLsizei n, GLuint *buffers);
     GLAPI void APIENTRY glBufferData (GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage);
+
+    GLAPI void APIENTRY glUseProgram (GLuint program);
 
     // extrapolation
     GLAPI void APIENTRY glDeleteBuffers (GLenum target, GLuint *buffers);
@@ -78,7 +81,7 @@ static inline float glc( float normalized )
 
 //! [0]
 GLWidget::GLWidget(QWidget *parent)
-    : QGLWidget(QGLFormat(QGL::SampleBuffers), parent), prevFps(0), fps(0), prevTime(0),
+    : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
       font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f)
 {
     logo = 0;
@@ -135,8 +138,6 @@ QSize GLWidget::sizeHint() const
 //! [6]
 void GLWidget::initializeGL()
 {
-    time.start();
-
     glClearColor(0.0, 0.0, 0.0, 1.0);
 
     glEnable(GL_TEXTURE_2D);
@@ -154,9 +155,7 @@ void GLWidget::initializeGL()
 //! [7]
 void GLWidget::paintGL()
 {
-    int ticks = time.elapsed();
-    fps = 1000.f / ticks;
-    time.restart();
+    clock_t t = clock();
 
     int width = this->width(), height = this->height();
 
@@ -249,13 +248,12 @@ void GLWidget::paintGL()
     if (isDragging)
         showDragUI();
 
-    glPushMatrix();
-    glLoadIdentity();
+    glFinish();
+    t = clock() - t;
 
+    glUseProgram( 0 );
     glColor4f(1.f, 1.f, 1.f, 1.f);
-    renderText(10, 20, "FPS: " + QString::number((float) (fps)), font);
-
-    glPopMatrix();
+    renderText(10, 20, "Render time: " + QString::number( (double) t / CLOCKS_PER_SEC ) + " sec", font);
 }
 //! [7]
 
