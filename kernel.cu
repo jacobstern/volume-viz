@@ -115,6 +115,36 @@ void rayMarch(unsigned char sharedMemory[], float3 origin, float3 step, dim3 cac
     __syncthreads();
 }
 
+__device__
+float4 shade(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim) {
+    unsigned char upper = sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ];
+    float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
+
+    for (unsigned char i = 0; i < upper; ++i) {
+        unsigned char sampled =  sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
+
+        float4 vox = make_float4(sampled / 255.f, sampled / 255.f, sampled / 255.f, sampled * 0.01f / 255.f);
+
+        if (vox.w > 1e-6) {
+            accum.x += vox.x * vox.w * (1.f - accum.w);
+            accum.y += vox.y * vox.w * (1.f - accum.w);
+            accum.z += vox.z * vox.w * (1.f - accum.w);
+            accum.w += vox.w * (1.f - accum.w);
+
+            if (accum.w > .95f) {
+                break;
+            }
+        }
+    }
+
+    accum.x = fminf(accum.x, 1.f);
+    accum.y = fminf(accum.y, 1.f);
+    accum.z = fminf(accum.z, 1.f);
+    accum.w = fminf(accum.w, 1.f);
+
+    return accum;
+}
+
 __global__
 void kernel(void *buffer,
             int width,
@@ -181,34 +211,9 @@ void kernel(void *buffer,
              cacheDim(slabWidth, slabHeight);
 
         rayMarch(sharedMemory, pos, step, cacheIdx, cacheDim);
+        float4 shaded = shade(sharedMemory, cacheIdx, cacheDim);
 
-        unsigned char upper = sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ];
-
-        float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
-
-        for (unsigned char i = 0; i < upper; ++i) {
-            unsigned char sampled =  sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
-
-            float4 vox = make_float4(sampled / 255.f, sampled / 255.f, sampled / 255.f, sampled * 0.01f / 255.f);
-
-            if (vox.w > 1e-6) {
-                accum.x += vox.x * vox.w * (1.f - accum.w);
-                accum.y += vox.y * vox.w * (1.f - accum.w);
-                accum.z += vox.z * vox.w * (1.f - accum.w);
-                accum.w += vox.w * (1.f - accum.w);
-
-                if (accum.w > .95f) {
-                    break;
-                }
-            }
-        }
-
-        accum.x = fminf(accum.x, 1.f);
-        accum.y = fminf(accum.y, 1.f);
-        accum.z = fminf(accum.z, 1.f);
-        accum.w = fminf(accum.w, 1.f);
-
-        pixels[index] = make_uchar4(accum.x * 0xff, accum.y * 0xff, accum.z * 0xff, accum.w * 0xff);
+        pixels[index] = make_uchar4(shaded.x * 0xff, shaded.y * 0xff, shaded.z * 0xff, shaded.w * 0xff);
     }
 }
 
