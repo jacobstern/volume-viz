@@ -559,9 +559,18 @@ void GLWidget::loadVolume()
 
     cout << "Generating mock voltex" << endl;
     m_volgen = new VolumeGenerator(width, height, depth);
-    cout << "volgen initialized" << endl;
-    m_volgen->drawDefaultBrain();
-    cout << "Mock voltex has been generated" << endl;
+
+    bool makeNewBrain = false;
+    if(makeNewBrain){
+        cout << "volgen initialized" << endl;
+        m_volgen->drawDefaultBrain();
+        cout << "Mock voltex has been generated" << endl;
+
+    }else{
+        cout << "loading brain from file" << endl;
+        char* path = "/home/rmartens/volume-texture.raw";
+        m_volgen->loadfrom_raw(path, NULL);
+    }
 
     size_t size;
     byte* texels = m_volgen->getBytes(size);
@@ -570,6 +579,9 @@ void GLWidget::loadVolume()
     cout << "Loading mock voltex into CUDA" << endl;
     cudaLoadVolume(texels, size, Vector3(width,height,depth), &m_volumeArray);
     cout << "Mock voltex has been loaded into CUDA" << endl;
+
+//    char* path = "/home/rmartens/volume-texture.raw";
+//    m_volgen->saveas_raw(path);
 
 //    char* path = "/home/rmartens/volume-texture.csv";
 //    m_volgen->saveas_csv(path);
