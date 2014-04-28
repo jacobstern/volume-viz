@@ -116,7 +116,22 @@ void rayMarch(unsigned char sharedMemory[], float3 origin, float3 step, dim3 cac
 }
 
 __device__
-float4 shadeTransfer(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim) {
+float4 shadePhong(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim) {
+    unsigned char upper = sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ];
+
+    for (unsigned char i = 0; i < upper; ++i) {
+        unsigned char sampled =  sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
+
+        if (sampled) {
+            return make_float4(1.f, 1.f, 1.f, 1.f);
+        }
+    }
+
+    return make_float4(0.f, 0.f, 0.f, 0.f);
+}
+
+__device__
+float4 shadeTransfer(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, float normalize) {
     unsigned char upper = sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ];
     float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
 
@@ -142,8 +157,10 @@ float4 shadeTransfer(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim)
     accum.z = fminf(accum.z, 1.f);
     accum.w = fminf(accum.w, 1.f);
 
-    return accum;
+    return accum * normalize;
 }
+
+#define SQRT_3 1.73205081f
 
 __global__
 void kernel(void *buffer,
@@ -202,7 +219,6 @@ void kernel(void *buffer,
     }
 
     float3 ray   = dist / length,
-           step  = ray * sqrtf(3) / MAX_STEPS,
            pos   = front;
 
     float t;
@@ -212,13 +228,16 @@ void kernel(void *buffer,
         pos = pos - ray * t;
     }
 
+    float  distActual = vectorLength(back - pos);
+    float3 step = ray * fminf( SQRT_3, distActual ) / MAX_STEPS;
+
     dim3 cacheIdx(slabX, slabY),
          cacheDim(slabWidth, slabHeight);
 
     rayMarch(sharedMemory, pos, step, cacheIdx, cacheDim);
 
     if (!isBorder) {
-        float4 shaded = shadeTransfer(sharedMemory, cacheIdx, cacheDim);
+        float4 shaded = shadeTransfer(sharedMemory, cacheIdx, cacheDim, distActual / SQRT_3);
 
         pixels[index] = make_uchar4(shaded.x * 0xff, shaded.y * 0xff, shaded.z * 0xff, shaded.w * 0xff);
     }
