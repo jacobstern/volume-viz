@@ -3,13 +3,16 @@ HEADERS       = glwidget.h \
                 qtlogo.h \
     camera.h \
     volumegenerator.h \
-    params.h
+    params.h \
+    ddsbase.h \
+    codebase.h
 SOURCES       = glwidget.cpp \
                 main.cpp \
                 window.cpp \
                 qtlogo.cpp \
     camera.cpp \
-    volumegenerator.cpp
+    volumegenerator.cpp \
+    ddsbase.cpp
 QT           += opengl widgets
 
 # install

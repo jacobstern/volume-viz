@@ -545,6 +545,11 @@ void GLWidget::loadShaderProgram(QGLShaderProgram &program, QString name)
     }
 }
 
+void GLWidget::volumeFromFile()
+{
+
+}
+
 void GLWidget::loadVolume()
 {
     // NOTE: Use hardcoded default for now
