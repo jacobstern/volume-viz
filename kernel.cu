@@ -112,6 +112,12 @@ void rayMarch(unsigned char sharedMemory[], float3 origin, float3 step, dim3 cac
 
     sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ] = i;
 
+    // Fill up the rest of the cache with zeros
+
+    for (; i < MAX_STEPS; ++i)
+        sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
+                = 0x00;
+
     __syncthreads();
 }
 
@@ -130,15 +136,48 @@ float4 shadePhong(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim) {
     return make_float4(0.f, 0.f, 0.f, 0.f);
 }
 
+__device__ unsigned char getVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, int offset) {
+    if (offset < 0 || offset + 1 > MAX_STEPS)
+        return 0x00;
+
+    return sharedMemory[ (offset + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
+}
+
+#define DEBUG_TRANSPARENT
+
 __device__
-float4 shadeTransfer(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, float normalize) {
+float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, int offset, float stepSize) {
+#ifdef DEBUG_TRANSPARENT
+    unsigned char sampled =  sharedMemory[ (offset + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
+
+    return make_float4(sampled / 255.f, sampled / 255.f, sampled / 255.f, sampled * 0.01f * stepSize / 255.f);
+#endif
+
+#ifdef DEBUG_PHONG
+    unsigned char c, l, r, t, b, f, a;
+
+    c = getVoxel(sharedMemory, cacheIdx, cacheDim, offset);
+    f = getVoxel(sharedMemory, cacheIdx, cacheDim, offset - 1);
+    a = getVoxel(sharedMemory, cacheIdx, cacheDim, offset + 1);
+
+    l = getVoxel(sharedMemory, dim3(cacheIdx.x - 1, cacheIdx.y), cacheDim, offset);
+    r = getVoxel(sharedMemory, dim3(cacheIdx.x + 1, cacheIdx.y), cacheDim, offset);
+    t = getVoxel(sharedMemory, dim3(cacheIdx.x, cacheIdx.y + 1), cacheDim, offset);
+    b = getVoxel(sharedMemory, dim3(cacheIdx.x, cacheIdx.y - 1), cacheDim, offset);
+
+
+#endif
+
+    return make_float4(0.f, 0.f, 0.f, 0.f);
+}
+
+__device__
+float4 shade(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, float normalize) {
     unsigned char upper = sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ];
     float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
 
     for (unsigned char i = 0; i < upper; ++i) {
-        unsigned char sampled =  sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
-
-        float4 vox = make_float4(sampled / 255.f, sampled / 255.f, sampled / 255.f, sampled * 0.01f * normalize / 255.f);
+        float4 vox = shadeVoxel(sharedMemory, cacheIdx, cacheDim, i, normalize);
 
         if (vox.w > 1e-6) {
             accum.x += vox.x * vox.w * (1.f - accum.w);
@@ -237,8 +276,7 @@ void kernel(void *buffer,
     rayMarch(sharedMemory, pos, step, cacheIdx, cacheDim);
 
     if (!isBorder) {
-        float4 shaded = shadeTransfer(sharedMemory, cacheIdx, cacheDim, distActual / SQRT_3);
-        // float4 shaded = shadePhong(sharedMemory, cacheIdx, cacheDim);
+        float4 shaded = shade(sharedMemory, cacheIdx, cacheDim, distActual);
 
         pixels[index] = make_uchar4(shaded.x * 0xff, shaded.y * 0xff, shaded.z * 0xff, shaded.w * 0xff);
     }
@@ -278,7 +316,7 @@ void runCuda(int width, int height, struct slice_params slice, struct camera_par
     checkCudaErrors( cudaGraphicsResourceGetMappedPointer(&devBuffer, &bufferSize, pixelBuffer) );
 
     // For convenience, greedily chunk the screen into 256-pixel squares
-    dim3 blockSize(16, 16),
+    dim3 blockSize(14, 14),
          blockDims(width / blockSize.x, height / blockSize.y);
     if (width % blockSize.x)
         ++blockDims.x;
