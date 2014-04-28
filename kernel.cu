@@ -24,6 +24,12 @@ float vectorLength(float3 vec)
 }
 
 __device__
+float ucharToFloat(unsigned char c)
+{
+    return c / 255.f;
+}
+
+__device__
 bool boundsCheck(float3 pos)
 {
     return pos.x < 1.0f && pos.x >= 0.0f
@@ -67,7 +73,7 @@ float4 sampleVolume(float3 pos)
     }
 }
 
-#define MAX_STEPS 63
+#define MAX_STEPS 31
 
 __device__
 unsigned char sample(float3 pos) {
@@ -150,25 +156,36 @@ __device__ unsigned char getVoxel(unsigned char sharedMemory[], dim3 cacheIdx, d
 #define DEBUG_TRANSPARENT
 
 __device__
-float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, int offset, float stepSize) {
+float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, int offset, float stepSize, float tanFovX, float tanFovY) {
 #ifdef DEBUG_TRANSPARENT
-    unsigned char sampled =  sharedMemory[ (offset + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
+    unsigned char sampled =  getVoxel(sharedMemory, cacheIdx, cacheDim, offset);
 
     return make_float4(sampled / 255.f, sampled / 255.f, sampled / 255.f, sampled * stepSize / 255.f);
 #endif
 
 #ifdef DEBUG_PHONG
-    unsigned char c, l, r, t, b, f, a;
+    unsigned char c = getVoxel(sharedMemory, cacheIdx, cacheDim, offset);
 
-    c = getVoxel(sharedMemory, cacheIdx, cacheDim, offset);
-    f = getVoxel(sharedMemory, cacheIdx, cacheDim, offset - 1);
-    a = getVoxel(sharedMemory, cacheIdx, cacheDim, offset + 1);
+    if ( c ) {
+        float l, r, t, b, f, a;
 
-    l = getVoxel(sharedMemory, dim3(cacheIdx.x - 1, cacheIdx.y), cacheDim, offset);
-    r = getVoxel(sharedMemory, dim3(cacheIdx.x + 1, cacheIdx.y), cacheDim, offset);
-    t = getVoxel(sharedMemory, dim3(cacheIdx.x, cacheIdx.y + 1), cacheDim, offset);
-    b = getVoxel(sharedMemory, dim3(cacheIdx.x, cacheIdx.y - 1), cacheDim, offset);
+        f = ucharToFloat( getVoxel(sharedMemory, cacheIdx, cacheDim, offset - 1) );
+        a = ucharToFloat( getVoxel(sharedMemory, cacheIdx, cacheDim, offset + 1) );
 
+        l = ucharToFloat( getVoxel(sharedMemory, dim3(cacheIdx.x - 1, cacheIdx.y), cacheDim, offset) );
+        r = ucharToFloat( getVoxel(sharedMemory, dim3(cacheIdx.x + 1, cacheIdx.y), cacheDim, offset) );
+        t = ucharToFloat( getVoxel(sharedMemory, dim3(cacheIdx.x, cacheIdx.y + 1), cacheDim, offset) );
+        b = ucharToFloat( getVoxel(sharedMemory, dim3(cacheIdx.x, cacheIdx.y - 1), cacheDim, offset) );
+
+        float3 gradient = make_float3(0.f, 0.f, 0.f);
+        gradient.x = (r - l) / (tanFovX * offset * stepSize);
+        gradient.y = (t - b) / (tanFovY * offset * stepSize);
+        gradient.z = (a - f) / (stepSize * 2.f);
+
+        gradient = normalize(gradient);
+
+        return make_float4(fabs(gradient.x), fabs(gradient.y), fabs(gradient.z), ucharToFloat( c ) );
+    }
 
 #endif
 
@@ -176,12 +193,15 @@ float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, in
 }
 
 __device__
-float4 shade(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, float normalize) {
+float4 shade(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, float normalize, struct camera_params cameraParams, int width, int height) {
     unsigned char upper = sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ];
     float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
 
-    for (unsigned char i = 0; i < upper; ++i) {
-        float4 vox = shadeVoxel(sharedMemory, cacheIdx, cacheDim, i, normalize);
+    double tanFovX = tan( cameraParams.fovX * M_PI / (180.f * width ) ),
+           tanFovY = tan( cameraParams.fovY * M_PI / (180.f * height) );
+
+    for (unsigned char i = 0x00; i < upper; ++i) {
+        float4 vox = shadeVoxel(sharedMemory, cacheIdx, cacheDim, i, normalize, tanFovX, tanFovY);
 
         if (vox.w > 1e-6) {
             accum.x += vox.x * vox.w * (1.f - accum.w);
@@ -289,7 +309,7 @@ void kernel(void *buffer,
     rayMarch(sharedMemory, pos, step, cacheIdx, cacheDim);
 
     if (!isBorder) {
-        float4 shaded = shade(sharedMemory, cacheIdx, cacheDim, stepSize);
+        float4 shaded = shade(sharedMemory, cacheIdx, cacheDim, stepSize, camera, width, height);
 
         pixels[index] = make_uchar4(shaded.x * 0xff, shaded.y * 0xff, shaded.z * 0xff, shaded.w * 0xff);
     }
