@@ -48,7 +48,11 @@
 
 #include <QTime>
 
+#include <cuda.h>
+#include <cuda_gl_interop.h>
+
 #include "camera.h"
+#include "volumegenerator.h"
 
 class QtLogo;
 
@@ -94,6 +98,8 @@ private:
 
     void loadShaderProgram(QGLShaderProgram &program, QString name);
 
+    void loadVolume();
+
     QtLogo *logo;
     float scaleFactor;
     QPoint lastPos;
@@ -107,6 +113,10 @@ private:
 
     QMatrix4x4 perspective;
     float fovX, fovY;
+
+    VolumeGenerator* m_volgen;
+
+    cudaArray* m_volumeArray;
 };
 //! [3]
 

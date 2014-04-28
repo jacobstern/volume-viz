@@ -10,12 +10,24 @@
 #include <stdio.h>
 
 #include "kernel.cuh"
+#include "assert.h"
+#include "params.h"
+
+#include <iostream>
+
+using std::cout;
+using std::endl;
 #include "implicit.cu"
 
 static struct cudaGraphicsResource *pixelBuffer, *texture0, *texture1;
 
 typedef texture<uchar4, cudaTextureType2D, cudaReadModeElementType> inTexture2D;
 inTexture2D inTexture0, inTexture1;
+
+// volumetric texture
+texture<unsigned char, cudaTextureType3D, cudaReadModeNormalizedFloat> texVolume;
+
+cudaArray *devVolume = 0;
 
 __device__
 float vectorLength(float3 vec)
@@ -60,28 +72,69 @@ __device__
 float4 sampleVolume(float3 pos)
 {
     // TODO: Sample from volume texture
-    if (pos.x > 1.f || pos.y > 1.f || pos.z > 1.f
-            || pos.x < 0.f || pos.y < 0.f || pos.z < 0.f) {
-        return make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+//    if (pos.x > 1.f || pos.y > 1.f || pos.z > 1.f
+//            || pos.x < 0.f || pos.y < 0.f || pos.z < 0.f) {
+//        return make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+//    }
+
+//    if ((pos.x - .5f) * (pos.x - .5f) + (pos.z - .5f) * (pos.z - .5f) < .25) {
+//       return make_float4(1.f, 1.f, 1.f, 0.01f);
+//    }
+//    else {
+//       return make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+//    }
+
+    if(pos.x < 0.0 || pos.x > 1.0 || pos.y < 0.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0){
+        return make_float4(1.0, 0, 0, 1.0);
     }
 
-    if ((pos.x - .5f) * (pos.x - .5f) + (pos.z - .5f) * (pos.z - .5f) < .25) {
-       return make_float4(1.f, 1.f, 1.f, 0.01f);
-    }
-    else {
-       return make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    }
+//    float cof = STEP_SIZE*STEP_SIZE*STEP_SIZE/23;
+    float cof = 1.0;
+    float x = pos.x*cof;
+    float y = pos.y*cof;
+    float z = pos.z*cof;
+
+    byte sample = tex3D(texVolume, x, y, z);
+    float s = ((float)sample)/255.0;
+
+    float r = s;
+    float g = s;
+    float b = 5*s;
+    float a = 0.05;
+
+    return make_float4(r, g, b, a);
+
+//    if(sample == 1){
+//        return make_float4(0.5, 0.0, 0, 1);
+
+//    }else if(sample == 2){
+//        return make_float4(0.0, 0.5, 0.0, 1);
+
+//    }else if(sample == 3){
+//        return make_float4(0.0, 0.0, 0.5, 1);
+
+//    }else if(sample == 4){
+//        return make_float4(0.0, 0.5, 0.5, 1);
+
+//    }else if(sample == 5){
+//        return make_float4(0.5, 0.0, 0.5, 1);
+
+//    }else{
+//        return make_float4(sample, sample, sample, 0.05)/8;
+//    }
+
+//    return make_float4(sample, sample, sample, 0.05)/122;
 }
 
 #define MAX_STEPS 31
 
 __device__
 unsigned char sample(float3 pos) {
-    if ( boundsCheck(pos) && (pos.x - .5f) * (pos.x - .5f) + (pos.z - .5f) * (pos.z - .5f) < .25 ) {
-        return 0xff;
+    if ( !boundsCheck(pos) ) {
+        return 0x00;
     }
 
-    return 0x00;
+    return 0xff * tex3D(texVolume, pos.x, pos.y, pos.z);
 }
 
 __device__
@@ -184,7 +237,7 @@ float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, in
 
         gradient = normalize(gradient);
 
-        return make_float4(fabs(gradient.x), fabs(gradient.y), fabs(gradient.z), ucharToFloat( c ) );
+        return make_float4(fabs(gradient.x), fabs(gradient.y), fabs(gradient.z), 1.f);
     }
 
 #endif
@@ -331,7 +384,8 @@ void registerCudaResources(GLuint input0, GLuint input1, GLuint output) {
     checkCudaErrors( cudaGraphicsGLRegisterBuffer(&pixelBuffer, output, cudaGraphicsRegisterFlagsWriteDiscard) );
 }
 
-void runCuda(int width, int height, struct slice_params slice, struct camera_params camera) {
+void runCuda(int width, int height, struct slice_params slice, struct camera_params camera,
+             cudaArray* volumeArray) {
     cudaGraphicsResource_t resources[3] = { texture0, texture1, pixelBuffer };
 
     checkCudaErrors( cudaGraphicsMapResources(3, resources) );
@@ -356,6 +410,9 @@ void runCuda(int width, int height, struct slice_params slice, struct camera_par
     if (height % blockSize.y)
         ++blockDims.y;
 
+//    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<uchar1>();
+//    checkCudaErrors( cudaBindTextureToArray(texVolume, volumeArray, channelDesc));
+
     blockSize.x += 2;
     blockSize.y += 2;
 
@@ -366,3 +423,124 @@ void runCuda(int width, int height, struct slice_params slice, struct camera_par
 
     checkCudaErrors( cudaGraphicsUnmapResources(3, resources) );
 }
+
+// load volumetric texture into the GPU
+void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
+                    cudaArray** volumeArray) {
+
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<unsigned char>();
+
+    cout << "mallocing texture array" << endl;
+
+    cudaExtent extent = make_cudaExtent( dims.x, dims.y, dims.z );
+    checkCudaErrors( cudaMalloc3DArray(&devVolume, &channelDesc, extent) );
+    cout << "texture array has been malloced" << endl;
+
+    cout << "size: " << size << endl;
+
+    cout << "memcopying texture array" << endl;
+    assert(texels);
+    assert(devVolume);
+    assert(size);
+
+    int width = dims.x;
+    int height = dims.y;
+    int depth = dims.z;
+
+    cudaMemcpy3DParms params = {0};
+    params.srcPtr = make_cudaPitchedPtr(texels, width * sizeof(unsigned char), width, height);
+    params.dstArray = devVolume;
+    params.extent = make_cudaExtent(width, height, depth);
+    params.kind = cudaMemcpyHostToDevice;
+
+    checkCudaErrors( cudaMemcpy3D(&params) );
+
+//    params.srcPtr.pitch = sizeof(byte)*width;
+//    params.srcPtr.ptr = texels;
+//    params.srcPtr.xsize = width;
+//    params.srcPtr.ysize = height;
+
+//    params.srcPos.x = 0;
+//    params.srcPos.y = 0;
+//    params.srcPos.z = 0;
+
+//    params.dstArray = devVolume;
+
+//    params.dstPos.x = 0;
+//    params.dstPos.y = 0;
+//    params.dstPos.z = 0;
+
+//    params.extent.width = width;
+//    params.extent.depth = depth;
+//    params.extent.height = height;
+
+//    params.kind = cudaMemcpyHostToDevice;
+
+    // set addressmode
+    texVolume.normalized = true;
+    texVolume.filterMode = cudaFilterModeLinear;
+    texVolume.addressMode[0] = cudaAddressModeWrap;
+    texVolume.addressMode[1] = cudaAddressModeWrap;
+    texVolume.addressMode[2] = cudaAddressModeWrap;
+
+    checkCudaErrors( cudaBindTextureToArray(texVolume, devVolume, channelDesc));
+
+    cout << "texture array has been memcopied" << endl;
+
+
+//    cout << "copying data back for testing" << endl;
+
+//    // Sanity check: Copy texture back
+//    byte* back_texels = new byte[size];
+//    memset(back_texels, '\0', size);
+
+
+//    cudaMemcpy3DParms back_params = {0};
+
+//    back_params.dstPtr.pitch = sizeof(byte) * width;
+//    back_params.dstPtr.ptr = back_texels;
+//    back_params.dstPtr.xsize = width;
+//    back_params.dstPtr.ysize = height;
+
+//    back_params.srcPos.x = 0;
+//    back_params.srcPos.y = 0;
+//    back_params.srcPos.z = 0;
+
+//    back_params.srcArray = tex_array;
+
+//    back_params.dstPos.x = 0;
+//    back_params.dstPos.y = 0;
+//    back_params.dstPos.z = 0;
+
+//    back_params.extent.width = width;
+//    back_params.extent.depth = depth;
+//    back_params.extent.height = height;
+
+//    back_params.kind = cudaMemcpyDeviceToHost;
+
+//    cout << "invoking" << endl;
+//    checkCudaErrors( cudaMemcpy3D(&back_params) );
+
+
+//    // TODO: Copy back for sanity check!
+//    for(int i=0; i<size; i++){
+//        if(texels[i] != back_texels[i]){
+//            printf("i: %d, texels: %u, back_texels: %u\n", i, texels[i], back_texels[i]);
+//            assert(false);
+
+
+//        }
+//    }
+
+
+
+//    cout << "data has been copied back for testing" << endl;
+
+
+}
+
+
+
+
+
+
