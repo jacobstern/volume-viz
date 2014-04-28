@@ -67,7 +67,7 @@ float4 sampleVolume(float3 pos)
     }
 }
 
-#define MAX_STEPS 63 // TODO: Turn up to 128 for Sunlab machines
+#define MAX_STEPS 63
 
 __device__
 unsigned char sample(float3 pos) {
@@ -79,11 +79,15 @@ unsigned char sample(float3 pos) {
 }
 
 __device__
-void rayMarch(unsigned char sharedMemory[], float3 origin, float3 step, dim3 cacheIdx, dim3 cacheDim) {
-    float3 pos = origin;
+void rayMarch(unsigned char sharedMemory[], float3 origin, float3 step, dim3 cacheIdx, dim3 cacheDim, int lower=0, int upper=MAX_STEPS) {
+    float3 pos = origin + lower * step;
     unsigned char i = 0x00;
 
-    for (; i < MAX_STEPS; ++i) {
+    for (; i < lower; ++i)
+        sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
+                = 0x00;
+
+    for (; i < upper; ++i) {
         if (pos.x < 1.0f && pos.x >= 0.0f
                 && pos.y < 1.0f && pos.y >= 0.0f
                 && pos.z < 1.0f && pos.z >= 0.0f) {
@@ -97,7 +101,7 @@ void rayMarch(unsigned char sharedMemory[], float3 origin, float3 step, dim3 cac
     }
 
 
-    for (; i < MAX_STEPS; ++i) {
+    for (; i < upper; ++i) {
         if (pos.x >= 1.0f || pos.x < 0.0f
                 || pos.y >= 1.0f || pos.y < 0.0f
                 || pos.z >= 1.0f || pos.z < 0.0f) {
@@ -260,6 +264,13 @@ void kernel(void *buffer,
     float3 ray   = dist / length,
            pos   = front;
 
+    if (slice.type == SLICE_PLANE) {
+        float3 point  = make_float3( slice.params[0], slice.params[1], slice.params[2] ),
+               normal = make_float3( slice.params[3], slice.params[4], slice.params[5] );
+
+        // TODO: Slicing
+    }
+
     float t;
     bool success = intersectSphereAndRay(camPos, rad, front, -ray, t);
     if (success) {
@@ -267,8 +278,10 @@ void kernel(void *buffer,
         pos = pos - ray * t;
     }
 
-    float  distActual = vectorLength(back - pos);
-    float3 step = ray * fminf( SQRT_3, distActual ) / MAX_STEPS;
+    float  distActual = vectorLength(back - pos),
+           stepSize = fminf( SQRT_3, distActual ) / MAX_STEPS;
+
+    float3 step = ray * stepSize;
 
     dim3 cacheIdx(slabX, slabY),
          cacheDim(slabWidth, slabHeight);
@@ -276,7 +289,7 @@ void kernel(void *buffer,
     rayMarch(sharedMemory, pos, step, cacheIdx, cacheDim);
 
     if (!isBorder) {
-        float4 shaded = shade(sharedMemory, cacheIdx, cacheDim, distActual);
+        float4 shaded = shade(sharedMemory, cacheIdx, cacheDim, stepSize);
 
         pixels[index] = make_uchar4(shaded.x * 0xff, shaded.y * 0xff, shaded.z * 0xff, shaded.w * 0xff);
     }

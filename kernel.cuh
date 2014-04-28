@@ -15,6 +15,7 @@ extern "C" {
 
     struct camera_params {
         float origin[3];
+        float fovX, fovY;
     };
 
     void initCuda();

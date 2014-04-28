@@ -29,7 +29,7 @@ CUDA_SOURCES += kernel.cu
 CUDA_SDK = /Developer/NVIDIA/CUDA-5.5/
 CUDA_DIR = /Developer/NVIDIA/CUDA-5.5/
 # cuda architecture for Jake's laptop is compute_12, which supports atomic memory operations
-CUDA_ARCH = compute_12
+CUDA_ARCH = sm_21
 # flags for the cuda compiler, in particular, verbosity about what ptx assembly is doing
 NVCC_FLAGS = --compiler-options -fno-strict-aliasing -use_fast_math --ptxas-options=-v
 

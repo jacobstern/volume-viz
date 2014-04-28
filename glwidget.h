@@ -110,6 +110,7 @@ private:
     QFont font; // font for rendering text
 
     QMatrix4x4 perspective;
+    float fovX, fovY;
 };
 //! [3]
 

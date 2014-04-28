@@ -79,7 +79,7 @@ static inline float glc( float normalized )
 //! [0]
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent), prevFps(0), fps(0), prevTime(0),
-      font("Deja Vu Sans Mono", 8, 4)
+      font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f)
 {
     logo = 0;
 
@@ -215,6 +215,8 @@ void GLWidget::paintGL()
     cameraParams.origin[0] = pos.x();
     cameraParams.origin[1] = pos.y();
     cameraParams.origin[2] = pos.z();
+    cameraParams.fovX      = fovX;
+    cameraParams.fovY      = fovY;
 
     runCuda( width, height, sliceParams, cameraParams );
 
@@ -247,8 +249,6 @@ void GLWidget::paintGL()
     if (isDragging)
         showDragUI();
 
-//    glUseProgram( 0 );
-
     glPushMatrix();
     glLoadIdentity();
 
@@ -265,8 +265,13 @@ void GLWidget::resizeGL(int width, int height)
     // Set the viewport given the resize event
     glViewport(0, 0, width, height);
 
+    float aspect = (float) width / (float) height;
+
     perspective = QMatrix4x4();
-    perspective.perspective( 45.f, (float) width / (float) height, 0.1f, 100.f );
+    perspective.perspective( 45.f, aspect, 0.1f, 100.f );
+
+    fovY = 45.f;
+    fovX = fovY * aspect;
 
     // Reset the Projection matrix
     glMatrixMode(GL_PROJECTION);
