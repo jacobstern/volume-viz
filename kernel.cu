@@ -24,6 +24,14 @@ float vectorLength(float3 vec)
 }
 
 __device__
+bool boundsCheck(float3 pos)
+{
+    return pos.x < 1.0f && pos.x >= 0.0f
+            && pos.y < 1.0f && pos.y >= 0.0f
+            && pos.z < 1.0f && pos.z >= 0.0f;
+}
+
+__device__
 float blockMin(float shared[], int idx, int upper, float poll)
 {
     shared[idx] = poll;
@@ -60,6 +68,52 @@ float4 sampleVolume(float3 pos)
 }
 
 #define MAX_STEPS 63 // TODO: Turn up to 128 for Sunlab machines
+
+__device__
+unsigned char sample(float3 pos) {
+    if ( boundsCheck(pos) && (pos.x - .5f) * (pos.x - .5f) + (pos.z - .5f) * (pos.z - .5f) < .25 ) {
+        return 0xff;
+    }
+
+    return 0x00;
+}
+
+__device__
+void rayMarch(unsigned char sharedMemory[], float3 origin, float3 step, dim3 cacheIdx, dim3 cacheDim) {
+    float3 pos = origin;
+    unsigned char i = 0x00;
+
+    for (; i < MAX_STEPS; ++i) {
+        if (pos.x < 1.0f && pos.x >= 0.0f
+                && pos.y < 1.0f && pos.y >= 0.0f
+                && pos.z < 1.0f && pos.z >= 0.0f) {
+            break;
+        }
+
+        sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
+                = sample(pos);
+
+        pos += step;
+    }
+
+
+    for (; i < MAX_STEPS; ++i) {
+        if (pos.x >= 1.0f || pos.x < 0.0f
+                || pos.y >= 1.0f || pos.y < 0.0f
+                || pos.z >= 1.0f || pos.z < 0.0f) {
+            break;
+        }
+
+        sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
+                = sample(pos);
+
+        pos += step;
+    }
+
+    sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ] = i;
+
+    __syncthreads();
+}
 
 __global__
 void kernel(void *buffer,
@@ -107,6 +161,7 @@ void kernel(void *buffer,
         float length = vectorLength(dist);
 
         if (length < 0.001f) {
+            // TODO: set a better min value if this happens
             pixels[index] = make_uchar4(0, 0, 0, 0);
             return;
         }
@@ -119,31 +174,23 @@ void kernel(void *buffer,
         bool success = intersectSphereAndRay(camPos, rad, front, -ray, t);
         if (success) {
             // Update front based on desired distance from camera
-
             pos = pos - ray * t;
-
-//            float test = vectorLength(camPos - pos) / 8.f;
-//            pixels[index] = make_uchar4(test * 0xff, test * 0xff, test * 0xff, 0xff);
-//            return;
         }
+
+        dim3 cacheIdx(slabX, slabY),
+             cacheDim(slabWidth, slabHeight);
+
+        rayMarch(sharedMemory, pos, step, cacheIdx, cacheDim);
+
+        unsigned char upper = sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ];
 
         float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
 
-        int i = 0;
-        float4 vox = make_float4(0.f, 0.f, 0.f, 0.f);
+        for (unsigned char i = 0; i < upper; ++i) {
+            unsigned char sampled =  sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
 
-        for (; i < MAX_STEPS; ++i) {
-            vox = sampleVolume(pos);
+            float4 vox = make_float4(sampled / 255.f, sampled / 255.f, sampled / 255.f, sampled * 0.01f / 255.f);
 
-            if (vox.w > 1e-6) {
-                break;
-            }
-
-            pos += step;
-        }
-
-
-        for (; i < MAX_STEPS; ++i) {
             if (vox.w > 1e-6) {
                 accum.x += vox.x * vox.w * (1.f - accum.w);
                 accum.y += vox.y * vox.w * (1.f - accum.w);
@@ -154,18 +201,7 @@ void kernel(void *buffer,
                     break;
                 }
             }
-
-            pos += step;
-
-            if (pos.x > 1.0f || pos.x < 0.0f
-                    || pos.y > 1.0f || pos.y < 0.0f
-                    || pos.z > 1.0f || pos.z < 0.0f) {
-                break;
-            }
-
-            vox = sampleVolume(pos);
         }
-        // accum = make_float4(fabs(ray.x), fabs(ray.y), fabs(ray.z), 1.0f);
 
         accum.x = fminf(accum.x, 1.f);
         accum.y = fminf(accum.y, 1.f);
