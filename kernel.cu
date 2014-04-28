@@ -154,7 +154,7 @@ float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, in
 #ifdef DEBUG_TRANSPARENT
     unsigned char sampled =  sharedMemory[ (offset + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
 
-    return make_float4(sampled / 255.f, sampled / 255.f, sampled / 255.f, sampled * 0.01f * stepSize / 255.f);
+    return make_float4(sampled / 255.f, sampled / 255.f, sampled / 255.f, sampled * stepSize / 255.f);
 #endif
 
 #ifdef DEBUG_PHONG
@@ -328,7 +328,7 @@ void runCuda(int width, int height, struct slice_params slice, struct camera_par
     size_t bufferSize;
     checkCudaErrors( cudaGraphicsResourceGetMappedPointer(&devBuffer, &bufferSize, pixelBuffer) );
 
-    // For convenience, greedily chunk the screen into 256-pixel squares
+    // For convenience, greedily chunk the screen into 14x14 squares
     dim3 blockSize(14, 14),
          blockDims(width / blockSize.x, height / blockSize.y);
     if (width % blockSize.x)
