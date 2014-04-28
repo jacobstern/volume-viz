@@ -574,8 +574,11 @@ void GLWidget::loadVolume()
 
     }else{
         cout << "loading brain from file" << endl;
-        char* path = "/home/rmartens/volume-texture.raw";
-        m_volgen->loadfrom_raw(path, true);
+//        char* path = "/home/rmartens/volume-texture.raw";
+
+        char* path = "/home/rmartens/MRI-Head.256x256x256_u1_1000000x1000000x800000.raw";
+
+        m_volgen->loadfrom_raw(path, false);
         cout << "brain has been loaded from file" << endl;
     }
 
