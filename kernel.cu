@@ -138,7 +138,7 @@ float4 shadeTransfer(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim,
     for (unsigned char i = 0; i < upper; ++i) {
         unsigned char sampled =  sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
 
-        float4 vox = make_float4(sampled / 255.f, sampled / 255.f, sampled / 255.f, sampled * 0.01f / 255.f);
+        float4 vox = make_float4(sampled / 255.f, sampled / 255.f, sampled / 255.f, sampled * 0.01f * normalize / 255.f);
 
         if (vox.w > 1e-6) {
             accum.x += vox.x * vox.w * (1.f - accum.w);
@@ -157,7 +157,7 @@ float4 shadeTransfer(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim,
     accum.z = fminf(accum.z, 1.f);
     accum.w = fminf(accum.w, 1.f);
 
-    return accum * normalize;
+    return accum;
 }
 
 #define SQRT_3 1.73205081f
@@ -238,6 +238,7 @@ void kernel(void *buffer,
 
     if (!isBorder) {
         float4 shaded = shadeTransfer(sharedMemory, cacheIdx, cacheDim, distActual / SQRT_3);
+        // float4 shaded = shadePhong(sharedMemory, cacheIdx, cacheDim);
 
         pixels[index] = make_uchar4(shaded.x * 0xff, shaded.y * 0xff, shaded.z * 0xff, shaded.w * 0xff);
     }
