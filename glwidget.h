@@ -101,8 +101,6 @@ private:
 
     void loadShaderProgram(QGLShaderProgram &program, QString name);
 
-    void drawSomething();
-
     QtLogo *logo;
     float scaleFactor;
     QPoint lastPos;
@@ -111,6 +109,9 @@ private:
     GLuint resultBuffer, resultTexture;
     QGLShaderProgram firstPass, screen, ui;
     QGLFramebufferObject *framebuffers[GLWidget::N_FRAMEBUFFERS];
+
+    bool renderingDirty;
+    float lastRenderTime;
 
     QFont font; // font for rendering text
 

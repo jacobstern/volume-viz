@@ -126,7 +126,7 @@ float4 sampleVolume(float3 pos)
 //    return make_float4(sample, sample, sample, 0.05)/122;
 }
 
-#define MAX_STEPS 31
+#define MAX_STEPS 63
 
 __device__
 unsigned char sample(float3 pos) {
@@ -182,21 +182,6 @@ void rayMarch(unsigned char sharedMemory[], float3 origin, float3 step, dim3 cac
                 = 0x00;
 
     __syncthreads();
-}
-
-__device__
-float4 shadePhong(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim) {
-    unsigned char upper = sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ];
-
-    for (unsigned char i = 0; i < upper; ++i) {
-        unsigned char sampled =  sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
-
-        if (sampled) {
-            return make_float4(1.f, 1.f, 1.f, 1.f);
-        }
-    }
-
-    return make_float4(0.f, 0.f, 0.f, 0.f);
 }
 
 __device__ unsigned char getVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, int offset) {

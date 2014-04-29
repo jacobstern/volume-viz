@@ -109,6 +109,8 @@ GLWidget::GLWidget(QWidget *parent)
     didStartDragging = false;
     isDragging = false;
     hasCuttingPlane = false;
+
+    renderingDirty = true;
 }
 //! [0]
 
@@ -163,8 +165,6 @@ void GLWidget::initializeGL()
 //! [7]
 void GLWidget::paintGL()
 {
-    clock_t t = clock();
-
     int width = this->width(), height = this->height();
 
     glEnable(GL_CULL_FACE);
@@ -225,13 +225,17 @@ void GLWidget::paintGL()
     cameraParams.fovX      = fovX;
     cameraParams.fovY      = fovY;
 
-    runCuda( width, height, sliceParams, cameraParams, m_volumeArray);
-
     glBindBuffer( GL_PIXEL_UNPACK_BUFFER, resultBuffer);
 
     // bind texture from PBO
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, resultBuffer);
+
+    clock_t t = clock();
+
+    if (renderingDirty) {
+        runCuda( width, height, sliceParams, cameraParams, m_volumeArray);
+    }
 
     // Note: glTexSubImage2D will perform a format conversion if the
     // buffer is a different format from the texture. We created the
@@ -250,21 +254,25 @@ void GLWidget::paintGL()
 
     drawTextureQuad();
 
-//    drawSomething();
-
-
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
     if (isDragging)
         showDragUI();
 
-    glFinish();
-    t = clock() - t;
+
+    if (renderingDirty) {
+        glFinish();
+        t = clock() - t;
+        lastRenderTime = (float) t / CLOCKS_PER_SEC;
+
+        renderingDirty = false;
+    }
+
 
     glUseProgram( 0 );
     glColor4f(1.f, 1.f, 1.f, 1.f);
-    renderText(10, 20, "Render time: " + QString::number( (double) t / CLOCKS_PER_SEC ) + " sec", font);
+    renderText(10, 20, "Render time: " + QString::number( (double) lastRenderTime ) + " sec", font);
 }
 //! [7]
 
@@ -373,6 +381,8 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
             camera->setPosition( QVector3D( r * sin(theta) * cos(phi), r * cos(theta), r * sin(theta) * sin(phi) ) );
             camera->lookAt( QVector3D(0.f, 0.f, 0.f) );
+
+            renderingDirty = true;
         }
         lastPos = event->pos();
 
@@ -492,29 +502,6 @@ void GLWidget::drawTextureQuad()
     CHECK_GL_ERROR_DEBUG();
 }
 
-void GLWidget::drawSomething()
-{
-    glDisable(GL_DEPTH_TEST);
-
-    glBegin(GL_QUADS);
-
-//    glTexCoord2f( 0.0, 0.0 );
-    glVertex3f( -0.5, -0.5, 0.0 );
-
-//    glTexCoord2f( 1.0, 0.0 );
-    glVertex3f( 0.5, -0.5, 0.0 );
-
-//    glTexCoord2f( 1.0, 1.0 );
-    glVertex3f( 0.5, 0.5, 0.0 );
-
-//    glTexCoord2f( 0.0, 1.0 );
-    glVertex3f( -0.5, 0.5, 0.0 );
-
-    glEnd();
-
-    CHECK_GL_ERROR_DEBUG();
-}
-
 //! [12]
 
 void GLWidget::wheelEvent(QWheelEvent *event)
@@ -528,6 +515,8 @@ void GLWidget::wheelEvent(QWheelEvent *event)
 
         update();
     }
+
+    renderingDirty = true;
 }
 
 void GLWidget::showDragUI()
