@@ -23,8 +23,8 @@ using std::endl;
 // TODO: Don't hardcode this
 #define STEP_SIZE 0.00390625f // 1/256
 
-#define CACHE_DEPTH  64
-#define CACHE_DEPTHF 64.f
+#define CACHE_DEPTH            64
+#define CACHE_DEPTH_MINUS_TWOF 62.f
 
 static struct cudaGraphicsResource *pixelBuffer, *texture0, *texture1;
 
@@ -137,7 +137,8 @@ void rayMarch(unsigned char cache[],
 __device__
 float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, int offset) {
 #ifdef DEBUG_TRANSPARENT
-    unsigned char sampled =  getVoxel(sharedMemory, cacheIdx, cacheDim, offset);
+    uchar sampled
+             = getVoxel( sharedMemory, cacheIdx, cacheDim, offset );
 
     return transferFunction( sampled );
 #endif
@@ -179,7 +180,7 @@ float4 shade(unsigned char sharedMemory[],
 //    double tanFovX = tan( cameraParams.fovX * M_PI / (180.f * width ) ),
 //           tanFovY = tan( cameraParams.fovY * M_PI / (180.f * height) );
 
-    for (int i = 0; i < CACHE_DEPTH; ++i) {
+    for (int i = 1; i < CACHE_DEPTH - 1; ++i) {
         float4 vox = shadeVoxel(sharedMemory, cacheIdx, cacheDim, i);
 
         if (vox.w > 1e-6) {
@@ -190,11 +191,6 @@ float4 shade(unsigned char sharedMemory[],
             }
         }
     }
-
-    accum.x = fminf(accum.x, 1.f);
-    accum.y = fminf(accum.y, 1.f);
-    accum.z = fminf(accum.z, 1.f);
-    accum.w = fminf(accum.w, 1.f);
 
     return accum;
 }
@@ -214,10 +210,10 @@ void mainLoop(uchar cache[],
     while ( dist < upper ) { // No infinite loop plz
         float3 pos = origin + direction * dist;
 
-        rayMarch(cache, cacheIdx, cacheDim, pos, direction);
-        dist += STEP_SIZE * CACHE_DEPTHF;
+        rayMarch( cache, cacheIdx, cacheDim, pos, direction );
+        dist += STEP_SIZE * CACHE_DEPTH_MINUS_TWOF;
 
-        result = shade(cache, cacheIdx, cacheDim, result);
+        result = shade( cache, cacheIdx, cacheDim, result );
         if ( result.w > .95f ) {
             return;
         }
