@@ -98,8 +98,6 @@ private:
 
     void loadShaderProgram(QGLShaderProgram &program, QString name);
 
-    void loadVolume();
-
     void drawSomething();
 
     QtLogo *logo;

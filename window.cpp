@@ -76,7 +76,7 @@ Window::Window()
         QVBoxLayout *leftColumn = new QVBoxLayout();{
             QVBoxLayout *controlBox = new QVBoxLayout();{
                 QHBoxLayout *loadBox = new QHBoxLayout;
-                m_loadButton = new QPushButton("Reload Volume");
+                m_loadButton = new QPushButton("Load Volume");
                 m_lineEdit = new QLineEdit();
                 m_lineEdit->setFocus();
                 m_lineEdit->clear();

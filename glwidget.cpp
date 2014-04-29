@@ -156,7 +156,7 @@ void GLWidget::initializeGL()
     loadShaderProgram( ui, tr("ui") );
 
     initCuda();
-    loadVolume();
+    loadVolume(DEFAULT_TEXTURE_PATH);
 }
 //! [6]
 
@@ -576,64 +576,45 @@ void GLWidget::loadShaderProgram(QGLShaderProgram &program, QString name)
 }
 
 
-void GLWidget::loadVolume()
+void GLWidget::loadVolume(char* path)
 {
-    // NOTE: Use hardcoded default for now
-//    int width = VOLUME_RESOLUTION;
-//    int height = VOLUME_RESOLUTION;
-//    int depth = VOLUME_RESOLUTION;
-
     cout << "Generating mock voltex" << endl;
     m_volgen = new VolumeGenerator(0,0,0);
 
-    bool makeNewBrain = false;
-    if(makeNewBrain){
-        cout << "volgen initialized" << endl;
-        m_volgen->drawDefaultBrain();
-        cout << "Mock voltex has been generated" << endl;
-
-        cout << "saving brain to file" << endl;
-        char* path = "/home/rmartens/volume-texture.raw";
-        m_volgen->saveas_raw(path, true);
-        cout << "brain has been saved to file" << endl;
+    cout << "loading brain from file" << endl;
+    m_volgen->loadfrom_raw(path, true);
+    cout << "brain has been loaded from file" << endl;
 
 
-    }else{
-        cout << "loading brain from file" << endl;
+//    bool makeNewBrain = false;
+//    if(makeNewBrain){
+//        cout << "volgen initialized" << endl;
+//        m_volgen->drawDefaultBrain();
+//        cout << "Mock voltex has been generated" << endl;
+
+//        cout << "saving brain to file" << endl;
 //        char* path = "/home/rmartens/volume-texture.raw";
+//        m_volgen->saveas_raw(path, true);
+//        cout << "brain has been saved to file" << endl;
 
-//        char* path = "/home/rmartens/MRI-Head.256x256x256_u1_1000000x1000000x800000.raw";
 
-        char* path = "/home/rmartens/shared/cs224textures/engine.t3d";
-
-        m_volgen->loadfrom_raw(path, true);
-        cout << "brain has been loaded from file" << endl;
-    }
+//    }else{
+//        cout << "loading brain from file" << endl;
+//        m_volgen->loadfrom_raw(path, true);
+//        cout << "brain has been loaded from file" << endl;
+//    }
 
     size_t size;
     byte* texels = m_volgen->getBytes(size);
     cout << "size: " << size << endl;
 
     cout << "Loading mock voltex into CUDA" << endl;
-
     cudaLoadVolume(texels, size, m_volgen->getDims(), &m_volumeArray);
     cout << "Mock voltex has been loaded into CUDA" << endl;
 
-
-
-//    char* path = "/home/rmartens/volume-texture.csv";
-//    m_volgen->saveas_csv(path);
-
-    // TODO: Error checking!
     delete m_volgen;
 
 }
-
-void GLWidget::loadVolume(char* path)
-{
-    m_volgen->loadfrom_raw(path);
-}
-
 
 
 
