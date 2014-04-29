@@ -15,14 +15,20 @@
 
 #include <iostream>
 
+#include "implicit.cu"
+
 using std::cout;
 using std::endl;
-#include "implicit.cu"
+
+
+#define CACHE_DEPTH 64
 
 static struct cudaGraphicsResource *pixelBuffer, *texture0, *texture1;
 
 typedef texture<uchar4, cudaTextureType2D, cudaReadModeElementType> inTexture2D;
 inTexture2D inTexture0, inTexture1;
+
+typedef unsigned char uchar;
 
 // volumetric texture
 texture<unsigned char, cudaTextureType3D, cudaReadModeNormalizedFloat> texVolume;
@@ -47,6 +53,13 @@ bool boundsCheck(float3 pos)
     return pos.x < 1.0f && pos.x >= 0.0f
             && pos.y < 1.0f && pos.y >= 0.0f
             && pos.z < 1.0f && pos.z >= 0.0f;
+}
+
+__device__ unsigned char getVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, int offset) {
+    if (offset < 0 || offset + 1 > CACHE_DEPTH)
+        return 0x00;
+
+    return sharedMemory[ offset * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
 }
 
 __device__
@@ -93,57 +106,50 @@ float4 blend(float4 src, float4 dst) {
 }
 
 __device__
+float4 transfer(uchar sampled) {
+    float asFloat = ucharToFloat( sampled );
+    return make_float4( asFloat, asFloat, asFloat, clamp(asFloat * 2.f, 0.f, 1.f) );
+}
+
+__device__
 void rayMarch(unsigned char sharedMemory[], float3 origin, float3 step, dim3 cacheIdx, dim3 cacheDim, int lower=0, int upper=MAX_STEPS) {
     float3 pos = origin + lower * step;
-    unsigned char i = 0x00;
+    int i = 0;
 
-    for (; i < lower; ++i)
-        sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
-                = 0x00;
-
-    for (; i < upper; ++i) {
+    for (; i < CACHE_DEPTH; ++i) {
         if (pos.x < 1.0f && pos.x >= 0.0f
                 && pos.y < 1.0f && pos.y >= 0.0f
                 && pos.z < 1.0f && pos.z >= 0.0f) {
             break;
         }
 
-        sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
+        sharedMemory[ i * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
                 = sample(pos);
 
         pos += step;
     }
 
 
-    for (; i < upper; ++i) {
+    for (; i < CACHE_DEPTH; ++i) {
         if (pos.x >= 1.0f || pos.x < 0.0f
                 || pos.y >= 1.0f || pos.y < 0.0f
                 || pos.z >= 1.0f || pos.z < 0.0f) {
             break;
         }
 
-        sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
+        sharedMemory[ i * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
                 = sample(pos);
 
         pos += step;
     }
 
-    sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ] = i;
-
     // Fill up the rest of the cache with zeros
 
-    for (; i < MAX_STEPS; ++i)
-        sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
+    for (; i < CACHE_DEPTH; ++i)
+        sharedMemory[ i * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
                 = 0x00;
 
     __syncthreads();
-}
-
-__device__ unsigned char getVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, int offset) {
-    if (offset < 0 || offset + 1 > MAX_STEPS)
-        return 0x00;
-
-    return sharedMemory[ (offset + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
 }
 
 #define DEBUG_TRANSPARENT
@@ -187,13 +193,12 @@ float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, in
 
 __device__
 float4 shade(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, float normalize, struct camera_params cameraParams, int width, int height) {
-    unsigned char upper = sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ];
     float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
 
     double tanFovX = tan( cameraParams.fovX * M_PI / (180.f * width ) ),
            tanFovY = tan( cameraParams.fovY * M_PI / (180.f * height) );
 
-    for (unsigned char i = 0x00; i < upper; ++i) {
+    for (int i = 0x00; i < CACHE_DEPTH; ++i) {
         float4 vox = shadeVoxel(sharedMemory, cacheIdx, cacheDim, i, normalize, tanFovX, tanFovY);
 
         if (vox.w > 1e-6) {
@@ -346,13 +351,10 @@ void runCuda(int width,
     if (height % blockSize.y)
         ++blockDims.y;
 
-//    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<uchar1>();
-//    checkCudaErrors( cudaBindTextureToArray(texVolume, volumeArray, channelDesc));
-
     blockSize.x += 2;
     blockSize.y += 2;
 
-    size_t sharedMemSize = ( MAX_STEPS + 1 ) * ( blockSize.x ) * ( blockSize.y ) * sizeof( unsigned char );
+    size_t sharedMemSize = ( CACHE_DEPTH ) * ( blockSize.x ) * ( blockSize.y ) * sizeof( uchar );
     kernel<<< blockDims, blockSize, sharedMemSize >>>(devBuffer, width, height, camera);
 
     checkCudaErrors( cudaUnbindTexture(inTexture0) );
