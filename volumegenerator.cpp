@@ -228,7 +228,10 @@ size_t VolumeGenerator::getVolSize()
     return m_x*m_y*m_z*sizeof(byte);
 }
 
-
+Vector3 VolumeGenerator::getDims()
+{
+    return Vector3(m_x, m_y, m_z);
+}
 
 
 

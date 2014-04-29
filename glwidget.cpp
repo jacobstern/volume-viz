@@ -576,20 +576,21 @@ void GLWidget::loadVolume()
         cout << "loading brain from file" << endl;
 //        char* path = "/home/rmartens/volume-texture.raw";
 
-        char* path = "/home/rmartens/MRI-Head.256x256x256_u1_1000000x1000000x800000.raw";
+//        char* path = "/home/rmartens/MRI-Head.256x256x256_u1_1000000x1000000x800000.raw";
 
-        m_volgen->loadfrom_raw(path, false);
+        char* path = "/home/rmartens/shared/cs224textures/engine.t3d";
+
+        m_volgen->loadfrom_raw(path, true);
         cout << "brain has been loaded from file" << endl;
     }
 
     size_t size;
     byte* texels = m_volgen->getBytes(size);
     cout << "size: " << size << endl;
-    cout << "width: " << width << ", height: " << height << ", depth: " << depth << endl;
-    assert(size == width*height*depth*sizeof(byte));
 
     cout << "Loading mock voltex into CUDA" << endl;
-    cudaLoadVolume(texels, size, Vector3(width,height,depth), &m_volumeArray);
+
+    cudaLoadVolume(texels, size, m_volgen->getDims(), &m_volumeArray);
     cout << "Mock voltex has been loaded into CUDA" << endl;
 
 

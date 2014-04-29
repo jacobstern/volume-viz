@@ -50,11 +50,19 @@
 Window::Window()
 {
     glWidget = new GLWidget;
+
+//    other = new GLWidget;
+
+
+
 //! [0]
 
 //! [1]
     QHBoxLayout *mainLayout = new QHBoxLayout;
     mainLayout->addWidget(glWidget);
+
+//    mainLayout->addWidget(other);
+
     setLayout(mainLayout);
 
     setWindowTitle(tr("VolumeViz"));

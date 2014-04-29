@@ -46,6 +46,8 @@ public:
 
     size_t getVolSize();
 
+    Vector3 getDims();
+
 private:
     byte*  m_volume; // consider color too!
     int     m_x;

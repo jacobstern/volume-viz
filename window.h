@@ -66,6 +66,10 @@ private:
     QSlider *xSlider;
     QSlider *ySlider;
     QSlider *zSlider;
+
+    GLWidget *other;
+
+
 };
 //! [0]
 
