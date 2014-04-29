@@ -11,7 +11,8 @@ SOURCES       = glwidget.cpp \
                 qtlogo.cpp \
     camera.cpp \
     volumegenerator.cpp \
-    slicewidget.cpp
+    slicewidget.cpp \
+    slice-kernel.cu
 QT           += opengl widgets
 
 # install
@@ -27,7 +28,8 @@ OTHER_FILES += kernel.cu \
     screen.vert \
     ui.frag \
     ui.vert \
-    implicit.cu
+    implicit.cu \
+    slice-kernel.cuh
 CUDA_SOURCES += kernel.cu
 
 # paths to cuda sdk on filesystem
