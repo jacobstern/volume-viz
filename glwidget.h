@@ -102,13 +102,14 @@ private:
     void loadShaderProgram(QGLShaderProgram &program, QString name);
 
     QtLogo *logo;
-    float scaleFactor;
     QPoint lastPos;
     QColor qtGreen;
     QColor qtPurple;
     GLuint resultBuffer, resultTexture;
     QGLShaderProgram firstPass, screen, ui;
     QGLFramebufferObject *framebuffers[GLWidget::N_FRAMEBUFFERS];
+
+    int resolutionScale;
 
     bool renderingDirty;
     float lastRenderTime;

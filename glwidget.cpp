@@ -87,11 +87,9 @@ static inline float glc( float normalized )
 //! [0]
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
-      font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f)
+      font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f), resolutionScale(4)
 {
     logo = 0;
-
-    scaleFactor = 0.5;
 
     qtGreen = QColor::fromCmykF(0.40, 0.0, 1.0, 0.0);
     qtPurple = QColor::fromCmykF(0.39, 0.39, 0.0, 0.0);
@@ -138,7 +136,7 @@ QSize GLWidget::minimumSizeHint() const
 QSize GLWidget::sizeHint() const
 //! [3] //! [4]
 {
-    return QSize(800, 600);
+    return QSize(768, 768);
 }
 //! [4]
 
@@ -227,14 +225,13 @@ void GLWidget::paintGL()
 
     glBindBuffer( GL_PIXEL_UNPACK_BUFFER, resultBuffer);
 
-    // bind texture from PBO
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, resultBuffer);
+    glBindTexture(GL_TEXTURE_2D, resultTexture);
 
     clock_t t = clock();
 
     if (renderingDirty) {
-        runCuda( width, height, sliceParams, cameraParams, m_volumeArray);
+        runCuda( width / resolutionScale, height / resolutionScale, sliceParams, cameraParams, m_volumeArray);
     }
 
     // Note: glTexSubImage2D will perform a format conversion if the
@@ -243,7 +240,7 @@ void GLWidget::paintGL()
     // GL_BGRA and GL_UNSIGNED_INT. This is a fast-path combination
 
     // Note: NULL indicates the data resides in device memory
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height,
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width / resolutionScale, height / resolutionScale,
                     GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
     screen.bind();
@@ -272,7 +269,9 @@ void GLWidget::paintGL()
 
     glUseProgram( 0 );
     glColor4f(1.f, 1.f, 1.f, 1.f);
-    renderText(10, 20, "Render time: " + QString::number( (double) lastRenderTime ) + " sec", font);
+    renderText(10, 20, "Resolution: "  + QString::number( width / resolutionScale )
+                                       + " x " + QString::number( height / resolutionScale ), font);
+    renderText(10, 34, "Render time: " + QString::number( (double) lastRenderTime ) + " sec", font);
 }
 //! [7]
 
@@ -312,7 +311,7 @@ void GLWidget::resizeGL(int width, int height)
         glDeleteBuffers(1, &resultBuffer);
     }
 
-    GLsizeiptr bufferSize = width * height * 4 * sizeof(GLubyte);
+    GLsizeiptr bufferSize = width * height * 4 * sizeof(GLubyte) / (resolutionScale * resolutionScale);
 
     glGenBuffers( 1, &resultBuffer );
     glBindBuffer( GL_PIXEL_UNPACK_BUFFER, resultBuffer );
@@ -327,7 +326,7 @@ void GLWidget::resizeGL(int width, int height)
 
     // Allocate the texture memory. The last parameter is NULL since we only
     // want to allocate memory, not initialize it
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
+    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width / resolutionScale, height / resolutionScale, 0,
               GL_BGRA,GL_UNSIGNED_BYTE, NULL);
 
     // Must set the filter mode, GL_LINEAR enables interpolation when scaling

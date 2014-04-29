@@ -248,8 +248,8 @@ void kernel(void *buffer,
         slabIndex = slabY * slabWidth + slabX,
         slabUpper = slabHeight * slabWidth;
 
-    uchar4 sample0 = tex2D( inTexture0, x, y ),
-           sample1 = tex2D( inTexture1, x, y );
+    uchar4 sample0 = tex2D( inTexture0, (float) x / width, (float) y / height ),
+           sample1 = tex2D( inTexture1, (float) x / width, (float) y / height );
 
     float3 front = make_float3(sample0.x / 255.f, sample0.y / 255.f, sample0.z / 255.f),
            back  = make_float3(sample1.x / 255.f, sample1.y / 255.f, sample1.z / 255.f);
@@ -319,6 +319,9 @@ void registerCudaResources(GLuint input0, GLuint input1, GLuint output) {
     checkCudaErrors( cudaGraphicsGLRegisterImage(&texture0, input0, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly) );
     checkCudaErrors( cudaGraphicsGLRegisterImage(&texture1, input1, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly) );
     checkCudaErrors( cudaGraphicsGLRegisterBuffer(&pixelBuffer, output, cudaGraphicsRegisterFlagsWriteDiscard) );
+
+    inTexture0.normalized = true;
+    inTexture1.normalized = true;
 }
 
 void runCuda(int width, int height, struct slice_params slice, struct camera_params camera,
@@ -371,11 +374,7 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
 
     cudaExtent extent = make_cudaExtent( dims.x, dims.y, dims.z );
     checkCudaErrors( cudaMalloc3DArray(&devVolume, &channelDesc, extent) );
-    cout << "texture array has been malloced" << endl;
 
-    cout << "size: " << size << endl;
-
-    cout << "memcopying texture array" << endl;
     assert(texels);
     assert(devVolume);
     assert(size);
@@ -392,27 +391,6 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
 
     checkCudaErrors( cudaMemcpy3D(&params) );
 
-//    params.srcPtr.pitch = sizeof(byte)*width;
-//    params.srcPtr.ptr = texels;
-//    params.srcPtr.xsize = width;
-//    params.srcPtr.ysize = height;
-
-//    params.srcPos.x = 0;
-//    params.srcPos.y = 0;
-//    params.srcPos.z = 0;
-
-//    params.dstArray = devVolume;
-
-//    params.dstPos.x = 0;
-//    params.dstPos.y = 0;
-//    params.dstPos.z = 0;
-
-//    params.extent.width = width;
-//    params.extent.depth = depth;
-//    params.extent.height = height;
-
-//    params.kind = cudaMemcpyHostToDevice;
-
     // set addressmode
     texVolume.normalized = true;
     texVolume.filterMode = cudaFilterModeLinear;
@@ -421,57 +399,6 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
     texVolume.addressMode[2] = cudaAddressModeWrap;
 
     checkCudaErrors( cudaBindTextureToArray(texVolume, devVolume, channelDesc));
-
-    cout << "texture array has been memcopied" << endl;
-
-
-//    cout << "copying data back for testing" << endl;
-
-//    // Sanity check: Copy texture back
-//    byte* back_texels = new byte[size];
-//    memset(back_texels, '\0', size);
-
-
-//    cudaMemcpy3DParms back_params = {0};
-
-//    back_params.dstPtr.pitch = sizeof(byte) * width;
-//    back_params.dstPtr.ptr = back_texels;
-//    back_params.dstPtr.xsize = width;
-//    back_params.dstPtr.ysize = height;
-
-//    back_params.srcPos.x = 0;
-//    back_params.srcPos.y = 0;
-//    back_params.srcPos.z = 0;
-
-//    back_params.srcArray = tex_array;
-
-//    back_params.dstPos.x = 0;
-//    back_params.dstPos.y = 0;
-//    back_params.dstPos.z = 0;
-
-//    back_params.extent.width = width;
-//    back_params.extent.depth = depth;
-//    back_params.extent.height = height;
-
-//    back_params.kind = cudaMemcpyDeviceToHost;
-
-//    cout << "invoking" << endl;
-//    checkCudaErrors( cudaMemcpy3D(&back_params) );
-
-
-//    // TODO: Copy back for sanity check!
-//    for(int i=0; i<size; i++){
-//        if(texels[i] != back_texels[i]){
-//            printf("i: %d, texels: %u, back_texels: %u\n", i, texels[i], back_texels[i]);
-//            assert(false);
-
-
-//        }
-//    }
-
-
-
-//    cout << "data has been copied back for testing" << endl;
 
 
 }

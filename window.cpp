@@ -57,8 +57,9 @@ static char *g_texture_names[N_DEFAULT_TEXTURES] = {"head",
                                                     "foo",
                                                     "bar",
                                                     "baz"};
-static char *g_texture_paths[N_DEFAULT_TEXTURES] = {"/home/rmartens/shared/cs224textures/head.t3d",
+static char *g_texture_paths[N_DEFAULT_TEXTURES] = {
                                                  "/home/rmartens/shared/cs224textures/engine.t3d",
+                                                  "/home/rmartens/shared/cs224textures/head.t3d",
                                                     "foo/path",
                                                     "bar/path",
                                                     "baz/path"};
@@ -104,6 +105,7 @@ Window::Window()
             } leftColumn->addLayout(controlBox);
         }mainLayout->addLayout(leftColumn);
     }mainLayout->addWidget(glWidget);
+    mainLayout->setAlignment(glWidget, Qt::AlignTop);
 
     setLayout(mainLayout);
     setWindowTitle(tr("VolumeViz"));
