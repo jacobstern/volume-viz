@@ -51,6 +51,7 @@
 #include <QMap>
 using std::map;
 
+#define N_SLICE_SLIDERS 6
 
 QT_BEGIN_NAMESPACE
 class QSlider;
@@ -88,7 +89,11 @@ private:
     QLineEdit* m_lineEdit;
     QComboBox* m_examples;
 
-//    QMap*    m_source_table;
+    QSlider**   m_sliceSliders;
+
+    QRadioButton** m_canonicalOrientationButtons;
+
+    QSlider* m_canonicalSliceSlider;
 
 
 };
