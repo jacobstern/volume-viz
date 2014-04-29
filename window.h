@@ -42,6 +42,7 @@
 #define WINDOW_H
 
 #include <QWidget>
+#include "slicewidget.h"
 
 QT_BEGIN_NAMESPACE
 class QSlider;
@@ -67,7 +68,7 @@ private:
     QSlider *ySlider;
     QSlider *zSlider;
 
-    GLWidget *other;
+    SliceWidget *m_sliceWidget;
 
 
 };

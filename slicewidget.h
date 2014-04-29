@@ -38,42 +38,86 @@
 **
 ****************************************************************************/
 
-//#include <QtWidgets>
+#ifndef SliceWidget_H
+#define SliceWidget_H
 
-#include <QApplication>
-#include <QtGui>
+#include <QGLWidget>
+#include <QGLShaderProgram>
+#include <QGLFramebufferObject>
+#include <QGLPixelBuffer>
 
-#include "glwidget.h"
-#include "window.h"
-#include "slicewidget.h"
+#include <QTime>
+
+#include <cuda.h>
+#include <cuda_gl_interop.h>
+
+#include "camera.h"
+#include "volumegenerator.h"
+
+class QtLogo;
 
 //! [0]
-Window::Window()
+class SliceWidget : public QGLWidget
 {
-    glWidget = new GLWidget;
+    Q_OBJECT
 
-    m_sliceWidget = new SliceWidget();
+public:
+    SliceWidget(QWidget *parent = 0);
+    ~SliceWidget();
 
+    QSize minimumSizeHint() const;
+    QSize sizeHint() const;
 
-
+    const static int N_FRAMEBUFFERS = 2;
 //! [0]
 
-//! [1]
-    QHBoxLayout *mainLayout = new QHBoxLayout;
-    mainLayout->addWidget(glWidget);
+//! [2]
+protected:
+    void initializeGL();
+    void paintGL();
+    void resizeGL(int width, int height);
+    void mousePressEvent(QMouseEvent *event);
+    void mouseReleaseEvent(QMouseEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
+    void wheelEvent(QWheelEvent *event);
+//! [2]
 
-    mainLayout->addWidget(m_sliceWidget);
+//! [3]
+private:
+    Camera *camera;
 
-    setLayout(mainLayout);
+    bool didStartDragging, isDragging;
+    QVector2D dragStart, dragEnd;
 
-    setWindowTitle(tr("VolumeViz"));
-}
-//! [1]
+    bool hasCuttingPlane;
+    QVector3D cutPoint, cutNormal;
 
-void Window::keyPressEvent(QKeyEvent *e)
-{
-    if (e->key() == Qt::Key_Escape)
-        close();
-    else
-        QWidget::keyPressEvent(e);
-}
+    void drawProxyGeometry();
+    void drawTextureQuad();
+    void showDragUI();
+
+    void loadShaderProgram(QGLShaderProgram &program, QString name);
+
+    void loadVolume();
+
+    QtLogo *logo;
+    float scaleFactor;
+    QPoint lastPos;
+    QColor qtGreen;
+    QColor qtPurple;
+    GLuint resultBuffer, resultTexture;
+    QGLShaderProgram firstPass, screen, ui;
+    QGLFramebufferObject *framebuffers[SliceWidget::N_FRAMEBUFFERS];
+
+    QFont font; // font for rendering text
+
+    QMatrix4x4 perspective;
+    float fovX, fovY;
+
+    VolumeGenerator* m_volgen;
+
+    cudaArray* m_volumeArray;
+};
+//! [3]
+
+#endif
