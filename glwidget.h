@@ -114,6 +114,8 @@ private:
     int transferPreset;
     bool doPhong;
 
+    bool filterOutput;
+
     bool renderingDirty;
     float lastRenderTime;
 

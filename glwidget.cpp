@@ -88,7 +88,7 @@ static inline float glc( float normalized )
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
       font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f), resolutionScale(4),
-      transferPreset(TRANSFER_PRESET_DEFAULT), doPhong(false)
+      transferPreset(TRANSFER_PRESET_DEFAULT), doPhong(false), filterOutput(false)
 {
     logo = 0;
 
@@ -335,9 +335,10 @@ void GLWidget::resizeGL(int width, int height)
     glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width / resolutionScale, height / resolutionScale, 0,
               GL_BGRA,GL_UNSIGNED_BYTE, NULL);
 
-    // Must set the filter mode, GL_LINEAR enables interpolation when scaling
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    GLenum filterMode = filterOutput ? GL_LINEAR : GL_NEAREST;
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filterMode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filterMode);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
