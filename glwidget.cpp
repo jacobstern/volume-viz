@@ -553,12 +553,12 @@ void GLWidget::loadShaderProgram(QGLShaderProgram &program, QString name)
 void GLWidget::loadVolume()
 {
     // NOTE: Use hardcoded default for now
-    int width = VOLUME_RESOLUTION;
-    int height = VOLUME_RESOLUTION;
-    int depth = VOLUME_RESOLUTION;
+//    int width = VOLUME_RESOLUTION;
+//    int height = VOLUME_RESOLUTION;
+//    int depth = VOLUME_RESOLUTION;
 
     cout << "Generating mock voltex" << endl;
-    m_volgen = new VolumeGenerator(width, height, depth);
+    m_volgen = new VolumeGenerator(0,0,0);
 
     bool makeNewBrain = false;
     if(makeNewBrain){

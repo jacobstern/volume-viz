@@ -207,6 +207,10 @@ void VolumeGenerator::loadfrom_raw(char *source, bool header)
 
     size_t size = m_x*m_y*m_z*sizeof(byte);
 
+    cout << "deleting old buffer" << endl;
+    delete[] m_volume;
+    m_volume = new byte[size];
+
     char *ptr = (char*) m_volume;
     src.read(ptr,size);
     src.close();
