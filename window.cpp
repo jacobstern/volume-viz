@@ -68,36 +68,43 @@ Window::Window()
 {
     glWidget = new GLWidget;
 
-    m_sliceWidget = new SliceWidget();
+
 //! [0]
 
 //! [1]
     QHBoxLayout *mainLayout = new QHBoxLayout;{
         QVBoxLayout *leftColumn = new QVBoxLayout();{
+            m_sliceWidget = new SliceWidget();{
+            }leftColumn->addWidget(m_sliceWidget);
             QVBoxLayout *controlBox = new QVBoxLayout();{
-                QHBoxLayout *loadBox = new QHBoxLayout;
-                m_loadButton = new QPushButton("Load Volume");
-                m_lineEdit = new QLineEdit();
-                m_lineEdit->setFocus();
-                m_lineEdit->clear();
-                m_lineEdit->insert(g_texture_paths[0]);
-                m_examples = new QComboBox();
-                for(int i=0; i<N_DEFAULT_TEXTURES; i++){
-                    m_examples->addItem(g_texture_names[i]);
-                }
-                connect(m_examples, SIGNAL(activated(int)), this, SLOT(textureSelectionChanged(int)));
-                loadBox->addWidget(m_lineEdit);
-                loadBox->addWidget(m_examples);
-                loadBox->addWidget(m_loadButton);
-                connect(m_loadButton, SIGNAL(clicked()), this, SLOT(loadButtonClicked()));
-                controlBox->addLayout(loadBox);
-            }
-            leftColumn->addWidget(m_sliceWidget);
-            leftColumn->addLayout(controlBox);
-        }
-        mainLayout->addLayout(leftColumn);
-    }
-    mainLayout->addWidget(glWidget);
+                QHBoxLayout *sliceBox = new QHBoxLayout();{
+                    QLabel* sliceLabel = new QLabel("Slicing tools");
+                    sliceBox->addWidget(sliceLabel);
+                }controlBox->addLayout(sliceBox);
+                QHBoxLayout *cullBox = new QHBoxLayout();{
+                    QLabel* cullLabel= new QLabel("Culling tools");
+                    cullBox->addWidget(cullLabel);
+                }controlBox->addLayout(cullBox);
+                QHBoxLayout *loadBox = new QHBoxLayout;{
+                    m_loadButton = new QPushButton("Load Volume");
+                    m_lineEdit = new QLineEdit();
+                    m_lineEdit->setFocus();
+                    m_lineEdit->clear();
+                    m_lineEdit->insert(g_texture_paths[0]);
+                    m_examples = new QComboBox();
+                    for(int i=0; i<N_DEFAULT_TEXTURES; i++){
+                        m_examples->addItem(g_texture_names[i]);
+                    }
+                    connect(m_examples, SIGNAL(activated(int)), this, SLOT(textureSelectionChanged(int)));
+                    loadBox->addWidget(m_lineEdit);
+                    loadBox->addWidget(m_examples);
+                    loadBox->addWidget(m_loadButton);
+                    connect(m_loadButton, SIGNAL(clicked()), this, SLOT(loadButtonClicked()));
+                }controlBox->addLayout(loadBox);
+            } leftColumn->addLayout(controlBox);
+        }mainLayout->addLayout(leftColumn);
+    }mainLayout->addWidget(glWidget);
+
     setLayout(mainLayout);
     setWindowTitle(tr("VolumeViz"));
 }
