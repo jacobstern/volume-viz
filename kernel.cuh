@@ -25,6 +25,7 @@ extern "C" {
     struct camera_params {
         float origin[3];
         float fovX, fovY;
+        float inv1[3], inv2[3], inv3[3];
     };
 
     struct shading_params {

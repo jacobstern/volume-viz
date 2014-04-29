@@ -23,8 +23,11 @@ using std::endl;
 // TODO: Don't hardcode this
 #define STEP_SIZE 0.00390625f // 1/256
 
-#define CACHE_DEPTH            64
-#define CACHE_DEPTH_MINUS_TWOF 62.f
+#define CACHE_DEPTH             64
+#define CACHE_DEPTH_MINUS_TWOF  62.f
+
+#define DIRECT_FACTOR           0.3f
+#define ONE_MINUS_DIRECT_FACTOR 0.7f
 
 static struct cudaGraphicsResource *pixelBuffer, *texture0, *texture1;
 
@@ -86,10 +89,6 @@ float blockMin(float shared[], int idx, int upper, float poll)
 
 __device__
 unsigned char sample(float3 pos) {
-    if ( !boundsCheck(pos) ) {
-        return 0x00;
-    }
-
     return 0xff * tex3D(texVolume, pos.x, pos.y, pos.z);
 }
 
@@ -110,7 +109,7 @@ __device__
 float4 transferFunction(uchar sampled) {
     float asFloat = ucharToFloat( sampled );
 
-    return make_float4( asFloat, asFloat, asFloat, clamp(asFloat * 2.f, 0.f, 1.f) );
+    return make_float4( asFloat, asFloat, asFloat, clamp(asFloat * asFloat * 2.f, 0.f, 1.f) );
 }
 
 __device__
@@ -132,21 +131,21 @@ void rayMarch(unsigned char cache[],
     __syncthreads();
 }
 
-#define DEBUG_TRANSPARENT
+#define DEBUG_PHONG
 
 __device__
-float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, int offset) {
-#ifdef DEBUG_TRANSPARENT
+float4 shadeVoxel(unsigned char sharedMemory[],
+                  dim3 cacheIdx,
+                  dim3 cacheDim,
+                  int offset,
+                  float3 voxelDim) {
     uchar sampled
              = getVoxel( sharedMemory, cacheIdx, cacheDim, offset );
 
-    return transferFunction( sampled );
-#endif
+    float4 value = transferFunction( sampled );
 
 #ifdef DEBUG_PHONG
-    unsigned char c = getVoxel(sharedMemory, cacheIdx, cacheDim, offset);
-
-    if ( c ) {
+    if ( value.w > 1e-6 ) {
         float l, r, t, b, f, a;
 
         f = ucharToFloat( getVoxel(sharedMemory, cacheIdx, cacheDim, offset - 1) );
@@ -157,48 +156,35 @@ float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, in
         t = ucharToFloat( getVoxel(sharedMemory, dim3(cacheIdx.x, cacheIdx.y + 1), cacheDim, offset) );
         b = ucharToFloat( getVoxel(sharedMemory, dim3(cacheIdx.x, cacheIdx.y - 1), cacheDim, offset) );
 
-        float3 gradient = make_float3(0.f, 0.f, 0.f);
-        gradient.x = (r - l) / (tanFovX * offset * stepSize);
-        gradient.y = (t - b) / (tanFovY * offset * stepSize);
-        gradient.z = (a - f) / (stepSize * 2.f);
+        float3 gradient = make_float3(
+                    (r - l) / voxelDim.x,
+                    (t - b) / voxelDim.y,
+                    (a - f) / voxelDim.z );
 
-        gradient = normalize(gradient);
+        if (gradient.x != 0.f && gradient.y != 0.f&& gradient.z != 0.f)
+            gradient = normalize(gradient);
 
-        return make_float4(fabs(gradient.x), fabs(gradient.y), fabs(gradient.z), 1.f);
+        float  direct = dot( gradient, make_float3( -1.f, -1.f, 1.f ) ) * DIRECT_FACTOR;
+        direct        = clamp(direct, 0.f, DIRECT_FACTOR);
+
+        value =  make_float4( value.x * ONE_MINUS_DIRECT_FACTOR,
+                              value.y * ONE_MINUS_DIRECT_FACTOR,
+                              value.z * ONE_MINUS_DIRECT_FACTOR,
+                              value.w );
+        value += make_float4( direct, direct, direct, 0.f );
     }
 
 #endif
 
-    return make_float4(0.f, 0.f, 0.f, 0.f);
-}
-
-__device__
-float4 shade(unsigned char sharedMemory[],
-             dim3 cacheIdx,
-             dim3 cacheDim,
-             float4 accum) {
-//    double tanFovX = tan( cameraParams.fovX * M_PI / (180.f * width ) ),
-//           tanFovY = tan( cameraParams.fovY * M_PI / (180.f * height) );
-
-    for (int i = 1; i < CACHE_DEPTH - 1; ++i) {
-        float4 vox = shadeVoxel(sharedMemory, cacheIdx, cacheDim, i);
-
-        if (vox.w > 1e-6) {
-            accum = blend(vox, accum);
-
-            if (accum.w > .95f) {
-                break;
-            }
-        }
-    }
-
-    return accum;
+    return value;
 }
 
 __device__
 void mainLoop(uchar cache[],
               dim3 cacheIdx,
               dim3 cacheDim,
+              dim3 imageDim,
+              camera_params camera,
               float3 origin,
               float3 direction,
               float upper,
@@ -207,19 +193,33 @@ void mainLoop(uchar cache[],
     float  dist = 0.f;
     result = make_float4( 0.f, 0.f, 0.f, 0.f );
 
+    float  tanFovX = tan( camera.fovX * M_PI / (180.f * imageDim.x ) ),
+           tanFovY = tan( camera.fovY * M_PI / (180.f * imageDim.y ) );
+
     while ( dist < upper ) { // No infinite loop plz
         float3 pos = origin + direction * dist;
 
         rayMarch( cache, cacheIdx, cacheDim, pos, direction );
-        dist += STEP_SIZE * CACHE_DEPTH_MINUS_TWOF;
 
-        result = shade( cache, cacheIdx, cacheDim, result );
-        if ( result.w > .95f ) {
-            return;
+        for (int i = 1; i < CACHE_DEPTH - 1; ++i) {
+            float3 voxelDim = make_float3(
+                        tanFovX * ( i * STEP_SIZE + dist ),
+                        tanFovY * ( i * STEP_SIZE + dist ),
+                        STEP_SIZE * 2.f
+                        );
+            float4 shaded = shadeVoxel( cache, cacheIdx, cacheDim, i, voxelDim );
+
+            if (shaded.w > 1e-6) {
+                result = blend( shaded, result );
+            }
+
+            if (result.w > .95f) {
+                return;
+            }
         }
-    }
 
-    result = make_float4( 1.f, 0.f, 0.f, 1.f );
+        dist += STEP_SIZE * CACHE_DEPTH_MINUS_TWOF;
+    }
 }
 
 #define SQRT_3 1.73205081f
@@ -292,10 +292,11 @@ void kernel(void *buffer,
     float upper = fminf( SQRT_3, vectorLength( back - pos ) );
 
     dim3 cacheIdx(slabX, slabY),
-         cacheDim(slabWidth, slabHeight);
+         cacheDim(slabWidth, slabHeight),
+         imageDim(width, height);
 
     float4 result;
-    mainLoop(sharedMemory, cacheIdx, cacheDim, pos, ray, upper, result);
+    mainLoop(sharedMemory, cacheIdx, cacheDim, imageDim, camera, pos, ray, upper, result);
 
     if (!isBorder) {
         result.x = clamp(result.x, 0.f, 1.f);
@@ -397,9 +398,9 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
     // set addressmode
     texVolume.normalized = true;
     texVolume.filterMode = cudaFilterModeLinear;
-    texVolume.addressMode[0] = cudaAddressModeWrap;
-    texVolume.addressMode[1] = cudaAddressModeWrap;
-    texVolume.addressMode[2] = cudaAddressModeWrap;
+    texVolume.addressMode[0] = cudaAddressModeClamp;
+    texVolume.addressMode[1] = cudaAddressModeClamp;
+    texVolume.addressMode[2] = cudaAddressModeClamp;
 
     checkCudaErrors( cudaBindTextureToArray(texVolume, devVolume, channelDesc));
 

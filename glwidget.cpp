@@ -218,9 +218,11 @@ void GLWidget::paintGL()
     struct camera_params cameraParams;
 
     QVector3D pos = camera->getPosition();
+
     cameraParams.origin[0] = pos.x();
     cameraParams.origin[1] = pos.y();
     cameraParams.origin[2] = pos.z();
+
     cameraParams.fovX      = fovX;
     cameraParams.fovY      = fovY;
 
@@ -240,12 +242,6 @@ void GLWidget::paintGL()
         runCuda( width / resolutionScale, height / resolutionScale, sliceParams, cameraParams, shadingParams, m_volumeArray);
     }
 
-    // Note: glTexSubImage2D will perform a format conversion if the
-    // buffer is a different format from the texture. We created the
-    // texture with format GL_RGBA8. In glTexSubImage2D we specified
-    // GL_BGRA and GL_UNSIGNED_INT. This is a fast-path combination
-
-    // Note: NULL indicates the data resides in device memory
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width / resolutionScale, height / resolutionScale,
                     GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
