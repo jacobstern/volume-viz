@@ -54,6 +54,8 @@
 #include "camera.h"
 #include "volumegenerator.h"
 
+
+
 class QtLogo;
 
 //! [0]
@@ -67,6 +69,8 @@ public:
 
     QSize minimumSizeHint() const;
     QSize sizeHint() const;
+
+    void drawSomething();
 
     const static int N_FRAMEBUFFERS = 2;
 //! [0]
@@ -117,6 +121,10 @@ private:
     VolumeGenerator* m_volgen;
 
     cudaArray* m_volumeArray;
+
+
+
+
 };
 //! [3]
 

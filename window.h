@@ -44,6 +44,14 @@
 #include <QWidget>
 #include "slicewidget.h"
 
+// ###########################################
+#include <QLineEdit>
+#include <QtGui>
+
+#include <QMap>
+using std::map;
+
+
 QT_BEGIN_NAMESPACE
 class QSlider;
 QT_END_NAMESPACE
@@ -57,6 +65,10 @@ class Window : public QWidget
 public:
     Window();
 
+public slots:
+    void textureSelectionChanged(int);
+    void loadButtonClicked();
+
 protected:
     void keyPressEvent(QKeyEvent *event);
 
@@ -69,6 +81,14 @@ private:
     QSlider *zSlider;
 
     SliceWidget *m_sliceWidget;
+
+
+    // ###########################################
+    QPushButton* m_loadButton;
+    QLineEdit* m_lineEdit;
+    QComboBox* m_examples;
+
+//    QMap*    m_source_table;
 
 
 };

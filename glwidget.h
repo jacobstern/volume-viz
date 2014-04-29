@@ -100,6 +100,8 @@ private:
 
     void loadVolume();
 
+    void drawSomething();
+
     QtLogo *logo;
     float scaleFactor;
     QPoint lastPos;
@@ -117,6 +119,8 @@ private:
     VolumeGenerator* m_volgen;
 
     cudaArray* m_volumeArray;
+
+    void loadVolume(char* path);
 };
 //! [3]
 

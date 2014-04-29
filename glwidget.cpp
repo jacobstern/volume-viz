@@ -250,6 +250,9 @@ void GLWidget::paintGL()
 
     drawTextureQuad();
 
+//    drawSomething();
+
+
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
@@ -489,6 +492,29 @@ void GLWidget::drawTextureQuad()
     CHECK_GL_ERROR_DEBUG();
 }
 
+void GLWidget::drawSomething()
+{
+    glDisable(GL_DEPTH_TEST);
+
+    glBegin(GL_QUADS);
+
+//    glTexCoord2f( 0.0, 0.0 );
+    glVertex3f( -0.5, -0.5, 0.0 );
+
+//    glTexCoord2f( 1.0, 0.0 );
+    glVertex3f( 0.5, -0.5, 0.0 );
+
+//    glTexCoord2f( 1.0, 1.0 );
+    glVertex3f( 0.5, 0.5, 0.0 );
+
+//    glTexCoord2f( 0.0, 1.0 );
+    glVertex3f( -0.5, 0.5, 0.0 );
+
+    glEnd();
+
+    CHECK_GL_ERROR_DEBUG();
+}
+
 //! [12]
 
 void GLWidget::wheelEvent(QWheelEvent *event)
@@ -601,6 +627,11 @@ void GLWidget::loadVolume()
     // TODO: Error checking!
     delete m_volgen;
 
+}
+
+void GLWidget::loadVolume(char* path)
+{
+    m_volgen->loadfrom_raw(path);
 }
 
 

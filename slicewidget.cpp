@@ -145,18 +145,18 @@ void SliceWidget::initializeGL()
 {
     glClearColor(0.0, 0.0, 0.0, 1.0);
 
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LINE_SMOOTH);
+//    glEnable(GL_TEXTURE_2D);
+//    glEnable(GL_DEPTH_TEST);
+//    glEnable(GL_LINE_SMOOTH);
 
-    glMatrixMode(GL_MODELVIEW);
+//    glMatrixMode(GL_MODELVIEW);
 
-    loadShaderProgram( firstPass, tr("firstpass") );
-    loadShaderProgram( screen, tr("screen") );
-    loadShaderProgram( ui, tr("ui") );
+//    loadShaderProgram( firstPass, tr("firstpass") );
+//    loadShaderProgram( screen, tr("screen") );
+//    loadShaderProgram( ui, tr("ui") );
 
-    initCuda();
-    loadVolume();
+//    initCuda();
+//    loadVolume();
 }
 //! [6]
 
@@ -171,50 +171,52 @@ void SliceWidget::paintGL()
 
     camera->updateView();
 
-    {
-        QPainter frontFace(framebuffers[FRONT_FACE_BUFFER]);
+    drawSomething();
 
-        firstPass.bind();
+//    {
+//        QPainter frontFace(framebuffers[FRONT_FACE_BUFFER]);
 
-        glClearColor( 0.f, 0.f, 0.f, 0.f );
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//        firstPass.bind();
 
-        drawProxyGeometry();
+//        glClearColor( 0.f, 0.f, 0.f, 0.f );
+//        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        frontFace.end();
-    }
+//        drawProxyGeometry();
 
-    {
-        QPainter backFace(framebuffers[BACK_FACE_BUFFER]);
+//        frontFace.end();
+//    }
 
-        firstPass.bind();
+//    {
+//        QPainter backFace(framebuffers[BACK_FACE_BUFFER]);
 
-        glClearColor( 0.f, 0.f, 0.f, 0.f );
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//        firstPass.bind();
 
-        glCullFace(GL_FRONT);
-        drawProxyGeometry();
-        glCullFace(GL_BACK);
+//        glClearColor( 0.f, 0.f, 0.f, 0.f );
+//        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        backFace.end();
-    }
+//        glCullFace(GL_FRONT);
+//        drawProxyGeometry();
+//        glCullFace(GL_BACK);
 
-    struct slice_params sliceParams;
+//        backFace.end();
+//    }
 
-    if (hasCuttingPlane) {
-        sliceParams.type = SLICE_PLANE;
+//    struct slice_params sliceParams;
 
-        sliceParams.params[0] = cutPoint.x();
-        sliceParams.params[1] = cutPoint.y();
-        sliceParams.params[2] = cutPoint.z();
+//    if (hasCuttingPlane) {
+//        sliceParams.type = SLICE_PLANE;
 
-        sliceParams.params[3] = cutNormal.x();
-        sliceParams.params[4] = cutNormal.y();
-        sliceParams.params[5] = cutNormal.z();
-    }
-    else {
-        sliceParams.type = SLICE_NONE;
-    }
+//        sliceParams.params[0] = cutPoint.x();
+//        sliceParams.params[1] = cutPoint.y();
+//        sliceParams.params[2] = cutPoint.z();
+
+//        sliceParams.params[3] = cutNormal.x();
+//        sliceParams.params[4] = cutNormal.y();
+//        sliceParams.params[5] = cutNormal.z();
+//    }
+//    else {
+//        sliceParams.type = SLICE_NONE;
+//    }
 
     struct camera_params cameraParams;
 
@@ -225,43 +227,45 @@ void SliceWidget::paintGL()
     cameraParams.fovX      = fovX;
     cameraParams.fovY      = fovY;
 
-    runCuda( width, height, sliceParams, cameraParams, m_volumeArray);
 
-    glBindBuffer( GL_PIXEL_UNPACK_BUFFER, resultBuffer);
 
-    // bind texture from PBO
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, resultBuffer);
+//    runCuda( width, height, sliceParams, cameraParams, m_volumeArray);
 
-    // Note: glTexSubImage2D will perform a format conversion if the
-    // buffer is a different format from the texture. We created the
-    // texture with format GL_RGBA8. In glTexSubImage2D we specified
-    // GL_BGRA and GL_UNSIGNED_INT. This is a fast-path combination
+//    glBindBuffer( GL_PIXEL_UNPACK_BUFFER, resultBuffer);
 
-    // Note: NULL indicates the data resides in device memory
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height,
-                    GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+//    // bind texture from PBO
+//    glActiveTexture(GL_TEXTURE0);
+//    glBindTexture(GL_TEXTURE_2D, resultBuffer);
 
-    screen.bind();
-    screen.setAttributeValue("texture", GL_TEXTURE0);
+//    // Note: glTexSubImage2D will perform a format conversion if the
+//    // buffer is a different format from the texture. We created the
+//    // texture with format GL_RGBA8. In glTexSubImage2D we specified
+//    // GL_BGRA and GL_UNSIGNED_INT. This is a fast-path combination
 
-    glClearColor( 0.f, 0.f, 0.f, 1.f );
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//    // Note: NULL indicates the data resides in device memory
+//    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height,
+//                    GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
-    drawTextureQuad();
+//    screen.bind();
+//    screen.setAttributeValue("texture", GL_TEXTURE0);
 
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+//    glClearColor( 0.f, 0.f, 0.f, 1.f );
+//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (isDragging)
-        showDragUI();
+//    drawTextureQuad();
 
-    glFinish();
-    t = clock() - t;
+//    glBindTexture(GL_TEXTURE_2D, 0);
+//    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
-    glUseProgram( 0 );
-    glColor4f(1.f, 1.f, 1.f, 1.f);
-    renderText(10, 20, "Render time: " + QString::number( (double) t / CLOCKS_PER_SEC ) + " sec", font);
+//    if (isDragging)
+//        showDragUI();
+
+//    glFinish();
+//    t = clock() - t;
+
+//    glUseProgram( 0 );
+//    glColor4f(1.f, 1.f, 1.f, 1.f);
+//    renderText(10, 20, "Render time: " + QString::number( (double) t / CLOCKS_PER_SEC ) + " sec", font);
 }
 //! [7]
 
@@ -489,6 +493,8 @@ void SliceWidget::drawTextureQuad()
     CHECK_GL_ERROR_DEBUG();
 }
 
+
+
 //! [12]
 
 void SliceWidget::wheelEvent(QWheelEvent *event)
@@ -603,7 +609,30 @@ void SliceWidget::loadVolume()
 
 }
 
+void SliceWidget::drawSomething()
+{
+    glDisable(GL_DEPTH_TEST);
 
+    glColor3f(1.0, 0.5, 0.0);
+
+    glBegin(GL_QUADS);
+
+//    glTexCoord2f( 0.0, 0.0 );
+    glVertex3f( -0.5, -0.5, 0.0 );
+
+//    glTexCoord2f( 1.0, 0.0 );
+    glVertex3f( 0.5, -0.5, 0.0 );
+
+//    glTexCoord2f( 1.0, 1.0 );
+    glVertex3f( 0.5, 0.5, 0.0 );
+
+//    glTexCoord2f( 0.0, 1.0 );
+    glVertex3f( -0.5, 0.5, 0.0 );
+
+    glEnd();
+
+    CHECK_GL_ERROR_DEBUG();
+}
 
 
 
