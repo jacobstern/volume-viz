@@ -14,6 +14,9 @@ extern "C" {
 #define SLICE_NONE  -1
 #define SLICE_PLANE  0
 
+#define TRANSFER_PRESET_ENGINE  0
+#define TRANSFER_PRESET_DEFAULT 1
+
     struct slice_params {
         int   type;
         float params[6];
@@ -24,9 +27,18 @@ extern "C" {
         float fovX, fovY;
     };
 
+    struct shading_params {
+        int transferPreset;
+        bool  phongShading;
+    };
+
     void initCuda();
     void registerCudaResources(GLuint input0, GLuint input1, GLuint output);
-    void runCuda(int width, int height, struct slice_params slice, struct camera_params camera,
+    void runCuda(int width,
+                 int height,
+                 struct slice_params slice,
+                 struct camera_params camera,
+                 struct shading_params shading,
                  cudaArray* volumeArray);
 
     void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,

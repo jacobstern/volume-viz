@@ -87,7 +87,8 @@ static inline float glc( float normalized )
 //! [0]
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
-      font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f), resolutionScale(4)
+      font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f), resolutionScale(4),
+      transferPreset(TRANSFER_PRESET_DEFAULT), doPhong(false)
 {
     logo = 0;
 
@@ -223,6 +224,11 @@ void GLWidget::paintGL()
     cameraParams.fovX      = fovX;
     cameraParams.fovY      = fovY;
 
+    struct shading_params shadingParams;
+
+    shadingParams.transferPreset = transferPreset;
+    shadingParams.phongShading   = doPhong;
+
     glBindBuffer( GL_PIXEL_UNPACK_BUFFER, resultBuffer);
 
     glActiveTexture(GL_TEXTURE0);
@@ -231,7 +237,7 @@ void GLWidget::paintGL()
     clock_t t = clock();
 
     if (renderingDirty) {
-        runCuda( width / resolutionScale, height / resolutionScale, sliceParams, cameraParams, m_volumeArray);
+        runCuda( width / resolutionScale, height / resolutionScale, sliceParams, cameraParams, shadingParams, m_volumeArray);
     }
 
     // Note: glTexSubImage2D will perform a format conversion if the
@@ -573,7 +579,10 @@ void GLWidget::loadVolume(const char* path)
     m_volgen->loadfrom_raw(path, true);
     cout << "brain has been loaded from file" << endl;
 
-
+    if (QString(path).endsWith("engine.t3d")) {
+        transferPreset = TRANSFER_PRESET_ENGINE;
+        doPhong = true;
+    }
 
     size_t size;
     byte* texels = m_volgen->getBytes(size);

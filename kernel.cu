@@ -219,7 +219,6 @@ __global__
 void kernel(void *buffer,
             int width,
             int height,
-            struct slice_params slice,
             struct camera_params camera )
 {
     extern __shared__ unsigned char sharedMemory[];
@@ -274,13 +273,6 @@ void kernel(void *buffer,
     float3 ray   = dist / length,
            pos   = front;
 
-    if (slice.type == SLICE_PLANE) {
-        float3 point  = make_float3( slice.params[0], slice.params[1], slice.params[2] ),
-               normal = make_float3( slice.params[3], slice.params[4], slice.params[5] );
-
-        // TODO: Slicing
-    }
-
     float t;
     bool success = intersectSphereAndRay(camPos, rad, front, -ray, t);
     if (success) {
@@ -324,7 +316,11 @@ void registerCudaResources(GLuint input0, GLuint input1, GLuint output) {
     inTexture1.normalized = true;
 }
 
-void runCuda(int width, int height, struct slice_params slice, struct camera_params camera,
+void runCuda(int width,
+             int height,
+             struct slice_params slice,
+             struct camera_params camera,
+             struct shading_params shading,
              cudaArray* volumeArray) {
     cudaGraphicsResource_t resources[3] = { texture0, texture1, pixelBuffer };
 
@@ -357,7 +353,7 @@ void runCuda(int width, int height, struct slice_params slice, struct camera_par
     blockSize.y += 2;
 
     size_t sharedMemSize = ( MAX_STEPS + 1 ) * ( blockSize.x ) * ( blockSize.y ) * sizeof( unsigned char );
-    kernel<<< blockDims, blockSize, sharedMemSize >>>(devBuffer, width, height, slice, camera);
+    kernel<<< blockDims, blockSize, sharedMemSize >>>(devBuffer, width, height, camera);
 
     checkCudaErrors( cudaUnbindTexture(inTexture0) );
 

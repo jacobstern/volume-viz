@@ -111,6 +111,9 @@ private:
 
     int resolutionScale;
 
+    int transferPreset;
+    bool doPhong;
+
     bool renderingDirty;
     float lastRenderTime;
 
