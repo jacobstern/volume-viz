@@ -20,8 +20,11 @@
 using std::cout;
 using std::endl;
 
+// TODO: Don't hardcode this
+#define STEP_SIZE 0.00390625f // 1/256
 
-#define CACHE_DEPTH 64
+#define CACHE_DEPTH  64
+#define CACHE_DEPTHF 64.f
 
 static struct cudaGraphicsResource *pixelBuffer, *texture0, *texture1;
 
@@ -81,8 +84,6 @@ float blockMin(float shared[], int idx, int upper, float poll)
     return min;
 }
 
-#define MAX_STEPS 63
-
 __device__
 unsigned char sample(float3 pos) {
     if ( !boundsCheck(pos) ) {
@@ -106,48 +107,27 @@ float4 blend(float4 src, float4 dst) {
 }
 
 __device__
-float4 transfer(uchar sampled) {
+float4 transferFunction(uchar sampled) {
     float asFloat = ucharToFloat( sampled );
+
     return make_float4( asFloat, asFloat, asFloat, clamp(asFloat * 2.f, 0.f, 1.f) );
 }
 
 __device__
-void rayMarch(unsigned char sharedMemory[], float3 origin, float3 step, dim3 cacheIdx, dim3 cacheDim, int lower=0, int upper=MAX_STEPS) {
-    float3 pos = origin + lower * step;
-    int i = 0;
+void rayMarch(unsigned char cache[],
+              dim3   cacheIdx,
+              dim3   cacheDim,
+              float3 origin,
+              float3 direction) {
+    float3 pos  = origin,
+           step = direction * STEP_SIZE;
 
-    for (; i < CACHE_DEPTH; ++i) {
-        if (pos.x < 1.0f && pos.x >= 0.0f
-                && pos.y < 1.0f && pos.y >= 0.0f
-                && pos.z < 1.0f && pos.z >= 0.0f) {
-            break;
-        }
-
-        sharedMemory[ i * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
-                = sample(pos);
+    for (int i = 0; i < CACHE_DEPTH; ++i) {
+        cache[ i * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
+                = sample( pos );
 
         pos += step;
     }
-
-
-    for (; i < CACHE_DEPTH; ++i) {
-        if (pos.x >= 1.0f || pos.x < 0.0f
-                || pos.y >= 1.0f || pos.y < 0.0f
-                || pos.z >= 1.0f || pos.z < 0.0f) {
-            break;
-        }
-
-        sharedMemory[ i * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
-                = sample(pos);
-
-        pos += step;
-    }
-
-    // Fill up the rest of the cache with zeros
-
-    for (; i < CACHE_DEPTH; ++i)
-        sharedMemory[ i * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
-                = 0x00;
 
     __syncthreads();
 }
@@ -155,11 +135,11 @@ void rayMarch(unsigned char sharedMemory[], float3 origin, float3 step, dim3 cac
 #define DEBUG_TRANSPARENT
 
 __device__
-float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, int offset, float stepSize, float tanFovX, float tanFovY) {
+float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, int offset) {
 #ifdef DEBUG_TRANSPARENT
     unsigned char sampled =  getVoxel(sharedMemory, cacheIdx, cacheDim, offset);
 
-    return make_float4(sampled / 255.f, sampled / 255.f, sampled / 255.f, sampled * stepSize / 255.f);
+    return transferFunction( sampled );
 #endif
 
 #ifdef DEBUG_PHONG
@@ -192,14 +172,15 @@ float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, in
 }
 
 __device__
-float4 shade(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, float normalize, struct camera_params cameraParams, int width, int height) {
-    float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
+float4 shade(unsigned char sharedMemory[],
+             dim3 cacheIdx,
+             dim3 cacheDim,
+             float4 accum) {
+//    double tanFovX = tan( cameraParams.fovX * M_PI / (180.f * width ) ),
+//           tanFovY = tan( cameraParams.fovY * M_PI / (180.f * height) );
 
-    double tanFovX = tan( cameraParams.fovX * M_PI / (180.f * width ) ),
-           tanFovY = tan( cameraParams.fovY * M_PI / (180.f * height) );
-
-    for (int i = 0x00; i < CACHE_DEPTH; ++i) {
-        float4 vox = shadeVoxel(sharedMemory, cacheIdx, cacheDim, i, normalize, tanFovX, tanFovY);
+    for (int i = 0; i < CACHE_DEPTH; ++i) {
+        float4 vox = shadeVoxel(sharedMemory, cacheIdx, cacheDim, i);
 
         if (vox.w > 1e-6) {
             accum = blend(vox, accum);
@@ -216,6 +197,33 @@ float4 shade(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, float n
     accum.w = fminf(accum.w, 1.f);
 
     return accum;
+}
+
+__device__
+void mainLoop(uchar cache[],
+              dim3 cacheIdx,
+              dim3 cacheDim,
+              float3 origin,
+              float3 direction,
+              float upper,
+              float4 & result)
+{
+    float  dist = 0.f;
+    result = make_float4( 0.f, 0.f, 0.f, 0.f );
+
+    while ( dist < upper ) { // No infinite loop plz
+        float3 pos = origin + direction * dist;
+
+        rayMarch(cache, cacheIdx, cacheDim, pos, direction);
+        dist += STEP_SIZE * CACHE_DEPTHF;
+
+        result = shade(cache, cacheIdx, cacheDim, result);
+        if ( result.w > .95f ) {
+            return;
+        }
+    }
+
+    result = make_float4( 1.f, 0.f, 0.f, 1.f );
 }
 
 #define SQRT_3 1.73205081f
@@ -285,20 +293,21 @@ void kernel(void *buffer,
         pos = pos - ray * t;
     }
 
-    float  distActual = vectorLength(back - pos),
-           stepSize = fminf( SQRT_3, distActual ) / MAX_STEPS;
-
-    float3 step = ray * stepSize;
+    float upper = fminf( SQRT_3, vectorLength( back - pos ) );
 
     dim3 cacheIdx(slabX, slabY),
          cacheDim(slabWidth, slabHeight);
 
-    rayMarch(sharedMemory, pos, step, cacheIdx, cacheDim);
+    float4 result;
+    mainLoop(sharedMemory, cacheIdx, cacheDim, pos, ray, upper, result);
 
     if (!isBorder) {
-        float4 shaded = shade(sharedMemory, cacheIdx, cacheDim, stepSize, camera, width, height);
+        result.x = clamp(result.x, 0.f, 1.f);
+        result.y = clamp(result.y, 0.f, 1.f);
+        result.z = clamp(result.z, 0.f, 1.f);
+        result.w = clamp(result.w, 0.f, 1.f);
 
-        pixels[index] = make_uchar4(shaded.x * 0xff, shaded.y * 0xff, shaded.z * 0xff, shaded.w * 0xff);
+        pixels[index] = make_uchar4(result.x * 0xff, result.y * 0xff, result.z * 0xff, result.w * 0xff);
     }
 }
 

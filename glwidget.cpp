@@ -88,7 +88,7 @@ static inline float glc( float normalized )
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
       font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f), resolutionScale(4),
-      transferPreset(TRANSFER_PRESET_DEFAULT), doPhong(false), filterOutput(false)
+      transferPreset(TRANSFER_PRESET_DEFAULT), doPhong(false), filterOutput(true)
 {
     logo = 0;
 
