@@ -121,7 +121,8 @@ void Window::textureSelectionChanged(int idx)
 
 void Window::loadButtonClicked()
 {
-
+    const char* path = m_lineEdit->text().toUtf8().constData();
+    glWidget->loadVolume(path);
 }
 
 

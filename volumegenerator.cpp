@@ -171,7 +171,7 @@ void VolumeGenerator::saveas_raw(char *path, bool header)
     cout << "data has been written to output file" << endl;
 }
 
-void VolumeGenerator::loadfrom_raw(char *source, bool header)
+void VolumeGenerator::loadfrom_raw(const char *source, bool header)
 {
     cout << "reading raw file" << endl;
     ifstream src;

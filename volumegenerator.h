@@ -39,7 +39,7 @@ public:
 
     // save raw bytes with 3 uint64 in the header
     void saveas_raw(char *dest, bool header=false);
-    void loadfrom_raw(char *source, bool header=false);
+    void loadfrom_raw(const char *source, bool header=false);
 
     // pointer to raw data, refarg indicates size
     byte* getBytes(size_t& size);

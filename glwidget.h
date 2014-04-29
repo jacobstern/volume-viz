@@ -69,6 +69,9 @@ public:
     QSize sizeHint() const;
 
     const static int N_FRAMEBUFFERS = 2;
+
+
+    void loadVolume(const char* path);
 //! [0]
 
 //! [2]
@@ -118,7 +121,6 @@ private:
 
     cudaArray* m_volumeArray;
 
-    void loadVolume(char* path);
 };
 //! [3]
 

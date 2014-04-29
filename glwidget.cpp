@@ -576,33 +576,16 @@ void GLWidget::loadShaderProgram(QGLShaderProgram &program, QString name)
 }
 
 
-void GLWidget::loadVolume(char* path)
+void GLWidget::loadVolume(const char* path)
 {
     cout << "Generating mock voltex" << endl;
     m_volgen = new VolumeGenerator(0,0,0);
 
-    cout << "loading brain from file" << endl;
+    cout << "loading brain from file " << path << endl;
     m_volgen->loadfrom_raw(path, true);
     cout << "brain has been loaded from file" << endl;
 
 
-//    bool makeNewBrain = false;
-//    if(makeNewBrain){
-//        cout << "volgen initialized" << endl;
-//        m_volgen->drawDefaultBrain();
-//        cout << "Mock voltex has been generated" << endl;
-
-//        cout << "saving brain to file" << endl;
-//        char* path = "/home/rmartens/volume-texture.raw";
-//        m_volgen->saveas_raw(path, true);
-//        cout << "brain has been saved to file" << endl;
-
-
-//    }else{
-//        cout << "loading brain from file" << endl;
-//        m_volgen->loadfrom_raw(path, true);
-//        cout << "brain has been loaded from file" << endl;
-//    }
 
     size_t size;
     byte* texels = m_volgen->getBytes(size);
