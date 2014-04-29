@@ -68,64 +68,6 @@ float blockMin(float shared[], int idx, int upper, float poll)
     return min;
 }
 
-__device__
-float4 sampleVolume(float3 pos)
-{
-    // TODO: Sample from volume texture
-//    if (pos.x > 1.f || pos.y > 1.f || pos.z > 1.f
-//            || pos.x < 0.f || pos.y < 0.f || pos.z < 0.f) {
-//        return make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-//    }
-
-//    if ((pos.x - .5f) * (pos.x - .5f) + (pos.z - .5f) * (pos.z - .5f) < .25) {
-//       return make_float4(1.f, 1.f, 1.f, 0.01f);
-//    }
-//    else {
-//       return make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-//    }
-
-    if(pos.x < 0.0 || pos.x > 1.0 || pos.y < 0.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0){
-        return make_float4(1.0, 0, 0, 1.0);
-    }
-
-//    float cof = STEP_SIZE*STEP_SIZE*STEP_SIZE/23;
-    float cof = 1.0;
-    float x = pos.x*cof;
-    float y = pos.y*cof;
-    float z = pos.z*cof;
-
-    byte sample = tex3D(texVolume, x, y, z);
-    float s = ((float)sample)/255.0;
-
-    float r = s;
-    float g = s;
-    float b = 5*s;
-    float a = 0.05;
-
-    return make_float4(r, g, b, a);
-
-//    if(sample == 1){
-//        return make_float4(0.5, 0.0, 0, 1);
-
-//    }else if(sample == 2){
-//        return make_float4(0.0, 0.5, 0.0, 1);
-
-//    }else if(sample == 3){
-//        return make_float4(0.0, 0.0, 0.5, 1);
-
-//    }else if(sample == 4){
-//        return make_float4(0.0, 0.5, 0.5, 1);
-
-//    }else if(sample == 5){
-//        return make_float4(0.5, 0.0, 0.5, 1);
-
-//    }else{
-//        return make_float4(sample, sample, sample, 0.05)/8;
-//    }
-
-//    return make_float4(sample, sample, sample, 0.05)/122;
-}
-
 #define MAX_STEPS 63
 
 __device__
@@ -135,6 +77,19 @@ unsigned char sample(float3 pos) {
     }
 
     return 0xff * tex3D(texVolume, pos.x, pos.y, pos.z);
+}
+
+__device__
+float4 blend(float4 src, float4 dst) {
+    float4 ret;
+    float blendFactor = src.w * (1.f - dst.w);
+
+    ret.x = dst.x + src.x * blendFactor;
+    ret.y = dst.y + src.y * blendFactor;
+    ret.z = dst.z + src.z * blendFactor;
+    ret.w = dst.w +         blendFactor;
+
+    return ret;
 }
 
 __device__
@@ -242,10 +197,7 @@ float4 shade(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, float n
         float4 vox = shadeVoxel(sharedMemory, cacheIdx, cacheDim, i, normalize, tanFovX, tanFovY);
 
         if (vox.w > 1e-6) {
-            accum.x += vox.x * vox.w * (1.f - accum.w);
-            accum.y += vox.y * vox.w * (1.f - accum.w);
-            accum.z += vox.z * vox.w * (1.f - accum.w);
-            accum.w += vox.w * (1.f - accum.w);
+            accum = blend(vox, accum);
 
             if (accum.w > .95f) {
                 break;
