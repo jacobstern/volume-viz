@@ -100,6 +100,8 @@ private:
     QPushButton* m_sliceRenderButton;
     QPushButton* m_slicePrintButton;
 
+    QGroupBox* m_canonicalOrientationBox;
+
 
 };
 //! [0]

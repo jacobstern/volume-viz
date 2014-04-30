@@ -612,8 +612,8 @@ void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canoni
 
 
             case CORONAL:
-                pos.z = ((float)j)/((float)bp.height);
-                pos.y = ((float)i)/((float)bp.width);
+                pos.z = ((float)i)/((float)bp.width);
+                pos.y = ((float)j)/((float)bp.height);
                 pos.x = 0;
                 break;
             }

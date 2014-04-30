@@ -96,15 +96,18 @@ Window::Window()
                     QLabel* simpleSliderLabel = new QLabel("Simple Slicer");
                     simpleSliderBox->addWidget(simpleSliderLabel);
 
-                    QHBoxLayout* radioBox = new QHBoxLayout();{
-                        m_canonicalOrientationButtons = new QRadioButton*[N_CANONICAL_ORIENTATIONS];
-                        for(int i=0; i<N_CANONICAL_ORIENTATIONS; i++){
-                            QLabel* radioLabel = new QLabel(g_canonical_orientation_captions[i]);
-                            radioBox->addWidget(radioLabel);
-                            m_canonicalOrientationButtons[i] = new QRadioButton();
-                            radioBox->addWidget(m_canonicalOrientationButtons[i]);
-                        }
-                    }simpleSliderBox->addLayout(radioBox);
+                    m_canonicalOrientationBox = new QGroupBox();{
+                        QHBoxLayout* radioBox = new QHBoxLayout();{
+                            m_canonicalOrientationButtons = new QRadioButton*[N_CANONICAL_ORIENTATIONS];
+                            for(int i=0; i<N_CANONICAL_ORIENTATIONS; i++){
+                                QLabel* radioLabel = new QLabel(g_canonical_orientation_captions[i]);
+                                radioBox->addWidget(radioLabel);
+                                m_canonicalOrientationButtons[i] = new QRadioButton();
+                                radioBox->addWidget(m_canonicalOrientationButtons[i]);
+                            }
+                        }m_canonicalOrientationBox->setLayout(radioBox);
+                        m_canonicalOrientationButtons[SAGITTAL]->setChecked(true);
+                    }simpleSliderBox->addWidget(m_canonicalOrientationBox);
                     m_canonicalSliceSlider = new QSlider(Qt::Horizontal);
                     m_canonicalSliceSlider->setRange(0,SLICE_EDGELENGTH);
                     simpleSliderBox->addWidget(m_canonicalSliceSlider);
@@ -210,7 +213,16 @@ void Window::canonicalSliceSliderChanged(int val)
     float dy = 0.0;
     float dz = 0.0;
 
-    canonicalOrientation orientation = HORIZONTAL;
+    canonicalOrientation orientation;
+
+
+    for(int i=0; i<N_CANONICAL_ORIENTATIONS; i++){
+        if(m_canonicalOrientationButtons[i]->isChecked()){
+            orientation = (canonicalOrientation)i;
+            break;
+        }
+    }
+
 
     switch(orientation) {
 
@@ -225,6 +237,10 @@ void Window::canonicalSliceSliderChanged(int val)
     case CORONAL:
         dx = ((float)val)/((float)SLICE_EDGELENGTH);
         break;
+
+    default:
+        cout << "ERROR: Invalid default orientation " << endl;
+        assert(false);
     }
 
 
