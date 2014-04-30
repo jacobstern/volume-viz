@@ -29,6 +29,8 @@ using std::endl;
 #define DIRECT_FACTOR           0.3f
 #define ONE_MINUS_DIRECT_FACTOR 0.7f
 
+#define SQRT_3 1.73205081f
+
 static struct cudaGraphicsResource *pixelBuffer, *texture0, *texture1;
 
 typedef texture<uchar4, cudaTextureType2D, cudaReadModeElementType> inTexture2D;
@@ -133,12 +135,17 @@ void rayMarch(unsigned char cache[],
 
 #define DEBUG_PHONG
 
+template<int _sliceType>
 __device__
 float4 shadeVoxel(unsigned char sharedMemory[],
                   dim3 cacheIdx,
                   dim3 cacheDim,
                   int offset,
-                  float3 voxelDim) {
+                  float3 voxelPos,
+                  float3 voxelDim,
+                  float3 slicePoint,
+                  float3 sliceNormal) {
+
     uchar sampled
              = getVoxel( sharedMemory, cacheIdx, cacheDim, offset );
 
@@ -174,17 +181,23 @@ float4 shadeVoxel(unsigned char sharedMemory[],
         value += make_float4( direct, direct, direct, 0.f );
     }
 
+    if (_sliceType == SLICE_PLANE) {
+        float dist = distanceToPlane( slicePoint, sliceNormal, voxelPos );
+        value.x += clamp( (.01f - dist ) * 100.f, 0.f, 1.f );
+    }
 #endif
 
     return value;
 }
 
+template<int _sliceType>
 __device__
 void mainLoop(uchar cache[],
               dim3 cacheIdx,
               dim3 cacheDim,
               dim3 imageDim,
               camera_params camera,
+              slice_params slice,
               float3 origin,
               float3 direction,
               float upper,
@@ -196,25 +209,30 @@ void mainLoop(uchar cache[],
     float  tanFovX = tan( camera.fovX * M_PI / (180.f * imageDim.x ) ),
            tanFovY = tan( camera.fovY * M_PI / (180.f * imageDim.y ) );
 
+    float3 slicePoint  = make_float3( slice.params[0], slice.params[1], slice.params[2] ),
+           sliceNormal = make_float3( slice.params[3], slice.params[4], slice.params[5] );
+
     while ( dist < upper ) { // No infinite loop plz
         float3 pos = origin + direction * dist;
 
         rayMarch( cache, cacheIdx, cacheDim, pos, direction );
 
         for (int i = 1; i < CACHE_DEPTH - 1; ++i) {
+            float voxelDist = i * STEP_SIZE + dist;
             float3 voxelDim = make_float3(
-                        tanFovX * ( i * STEP_SIZE + dist ),
-                        tanFovY * ( i * STEP_SIZE + dist ),
+                        tanFovX * ( voxelDist ),
+                        tanFovY * ( voxelDist ),
                         STEP_SIZE * 2.f
-                        );
-            float4 shaded = shadeVoxel( cache, cacheIdx, cacheDim, i, voxelDim );
+                        ),
+                   voxelPos = origin + direction * voxelDist;
+            float4 shaded = shadeVoxel<_sliceType>( cache, cacheIdx, cacheDim, i, voxelPos, voxelDim, slicePoint, sliceNormal );
 
             if (shaded.w > 1e-6) {
                 result = blend( shaded, result );
             }
 
             if (result.w > .95f) {
-                return;
+                break;
             }
         }
 
@@ -222,13 +240,13 @@ void mainLoop(uchar cache[],
     }
 }
 
-#define SQRT_3 1.73205081f
-
+template<int _sliceType>
 __global__
 void kernel(void *buffer,
             int width,
             int height,
-            struct camera_params camera )
+            struct camera_params camera,
+            struct slice_params   slice)
 {
     extern __shared__ unsigned char sharedMemory[];
     uchar4 *pixels = (uchar4*) buffer;
@@ -296,7 +314,7 @@ void kernel(void *buffer,
          imageDim(width, height);
 
     float4 result;
-    mainLoop(sharedMemory, cacheIdx, cacheDim, imageDim, camera, pos, ray, upper, result);
+    mainLoop<_sliceType>(sharedMemory, cacheIdx, cacheDim, imageDim, camera, slice, pos, ray, upper, result);
 
     if (!isBorder) {
         result.x = clamp(result.x, 0.f, 1.f);
@@ -307,6 +325,10 @@ void kernel(void *buffer,
         pixels[index] = make_uchar4(result.x * 0xff, result.y * 0xff, result.z * 0xff, result.w * 0xff);
     }
 }
+
+template __global__ void kernel< SLICE_NONE  >( void *buffer, int width, int height, struct camera_params camera, struct slice_params slice);
+template __global__ void kernel< SLICE_PLANE >( void *buffer, int width, int height, struct camera_params camera, struct slice_params slice);
+
 
 void initCuda() {
     cudaGLSetGLDevice( gpuGetMaxGflopsDeviceId() );
@@ -361,7 +383,20 @@ void runCuda(int width,
     blockSize.y += 2;
 
     size_t sharedMemSize = ( CACHE_DEPTH ) * ( blockSize.x ) * ( blockSize.y ) * sizeof( uchar );
-    kernel<<< blockDims, blockSize, sharedMemSize >>>(devBuffer, width, height, camera);
+
+    switch( slice.type ) {
+
+    case SLICE_NONE:
+        kernel< SLICE_NONE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice );
+
+        break;
+
+    case SLICE_PLANE:
+        kernel< SLICE_PLANE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice );
+
+        break;
+    }
+
 
     checkCudaErrors( cudaUnbindTexture(inTexture0) );
 

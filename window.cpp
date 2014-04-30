@@ -52,8 +52,9 @@
 using namespace std;
 
 #define N_DEFAULT_TEXTURES 5
-static char *g_texture_names[N_DEFAULT_TEXTURES] = {"head",
+static char *g_texture_names[N_DEFAULT_TEXTURES] = {
                                                   "engine",
+                                                   "head",
                                                     "foo",
                                                     "bar",
                                                     "baz"};

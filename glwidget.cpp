@@ -84,6 +84,11 @@ static inline float glc( float normalized )
     return normalized * 2.f - 1.f;
 }
 
+static inline float nrm( float glCoord )
+{
+    return (glCoord + 1.f) / 2.f;
+}
+
 //! [0]
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
@@ -354,6 +359,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
         didStartDragging = true;
 
         hasCuttingPlane = false;
+        renderingDirty  = true;
     }
     else if (event->buttons() & Qt::RightButton) {
         lastPos = event->pos();
@@ -407,8 +413,8 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         QMatrix4x4 inverse = ( perspective * camera->transformation() ).inverted( &success );
 
         QVector4D front = inverse * QVector4D( glc( window.x() ), -glc( window.y() ), -1.f, 1.f ),
-                back  = inverse * QVector4D( glc( window.x() ), -glc( window.y() ),  1.f, 1.f ),
-                side  = inverse * QVector4D( glc( dragStart.x() ), -glc( dragStart.y() ),
+                  back  = inverse * QVector4D( glc( window.x() ), -glc( window.y() ),  1.f, 1.f ),
+                  side  = inverse * QVector4D( glc( dragStart.x() ), -glc( dragStart.y() ),
                                              -1.f, 1.f );
 
         front /= front.w();
@@ -418,14 +424,20 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         Q_ASSERT( success );
 
         QVector4D a = (back - front).normalized(),
-                b = (side - front).normalized();
+                  b = (side - front).normalized();
 
         QVector3D p( front.x(), front.y(), front.z() ),
                   n( QVector3D::crossProduct(
                        QVector3D( a.x(), a.y(), a.z() ),
                        QVector3D( b.x(), b.y(), b.z() ) ) );
 
+        p.setX( nrm( p.x() ) );
+        p.setY( nrm( p.y() ) );
+        p.setZ( nrm( p.z() ) );
+
         hasCuttingPlane = true;
+        renderingDirty  = true;
+
         cutPoint = p;
         cutNormal = n;
     }
