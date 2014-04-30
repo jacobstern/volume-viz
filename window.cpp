@@ -178,7 +178,7 @@ void Window::renderSliceButtonClicked()
 
     SliceParameters sliceParameters(dx, dy, dz, theta, phi, psi);
     BufferParameters bufferParameters(height, width);
-    canonicalOrientation orientation = HORIZONTAL;
+    canonicalOrientation orientation = SAGITTAL;
 
     cout << "Window: Rendering slice" << endl;
     m_sliceWidget->renderSlice(sliceParameters, bufferParameters, orientation);
@@ -208,7 +208,25 @@ void Window::canonicalSliceSliderChanged(int val)
     // TODO: get specifications
     float dx = 0.0;
     float dy = 0.0;
-    float dz = ((float)val)/((float)SLICE_EDGELENGTH);
+    float dz = 0.0;
+
+    canonicalOrientation orientation = HORIZONTAL;
+
+    switch(orientation) {
+
+    case SAGITTAL:
+        dz = ((float)val)/((float)SLICE_EDGELENGTH);
+        break;
+
+    case HORIZONTAL:
+        dy = ((float)val)/((float)SLICE_EDGELENGTH);
+        break;
+
+    case CORONAL:
+        dx = ((float)val)/((float)SLICE_EDGELENGTH);
+        break;
+    }
+
 
     float theta = 0.0;
     float phi = 0.0;
@@ -219,7 +237,6 @@ void Window::canonicalSliceSliderChanged(int val)
 
     SliceParameters sliceParameters(dx, dy, dz, theta, phi, psi);
     BufferParameters bufferParameters(height, width);
-    canonicalOrientation orientation = HORIZONTAL;
 
     cout << "Window: Rendering slice" << endl;
     m_sliceWidget->renderSlice(sliceParameters, bufferParameters, orientation);

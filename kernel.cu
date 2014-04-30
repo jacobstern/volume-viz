@@ -596,9 +596,27 @@ void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canoni
 
             float3 pos;
 
-            pos.z = 0;
-            pos.y = ((float)j)/((float)bp.height);
-            pos.x = ((float)i)/((float)bp.width);
+            switch(c){
+
+            case SAGITTAL:
+                pos.z = 0;
+                pos.y = ((float)j)/((float)bp.height);
+                pos.x = ((float)i)/((float)bp.width);
+                break;
+
+            case HORIZONTAL:
+                pos.z = ((float)i)/((float)bp.width);
+                pos.y = 0;
+                pos.x = ((float)j)/((float)bp.height);
+                break;
+
+
+            case CORONAL:
+                pos.z = ((float)j)/((float)bp.height);
+                pos.y = ((float)i)/((float)bp.width);
+                pos.x = 0;
+                break;
+            }
 
             pos.x += sp.dx;
             pos.y += sp.dy;
