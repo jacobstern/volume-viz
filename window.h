@@ -109,6 +109,8 @@ private:
 
     QLineEdit* m_sliceSavePath;
 
+    QTabWidget* m_sliceTab;
+
 
 };
 //! [0]

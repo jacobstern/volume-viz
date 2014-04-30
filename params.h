@@ -12,6 +12,11 @@
 #define SLICE_EDGELENGTH 256
 
 #define N_DEFAULT_TEXTURES 3
+
+#define SLICE_SIZE 256
+#define RENDER_SIZE 512
+
+
 static char *g_texture_names[N_DEFAULT_TEXTURES] = {"head",
                                                   "engine",
                                                     "monkey"};

@@ -56,26 +56,29 @@ using namespace std;
 //! [0]
 Window::Window()
 {
-    glWidget = new GLWidget;
 
 
 //! [0]
 
 //! [1]
+    // EVERYTHING GOES IN HERE
     QHBoxLayout *mainLayout = new QHBoxLayout;{
+
+
+        // LEFT HALF OF MAIN WINDOW
         QVBoxLayout *leftColumn = new QVBoxLayout();{
+
+            // UPPER HALF OF LEFT COLUMN
             m_sliceWidget = new SliceWidget();{
-            }leftColumn->addWidget(m_sliceWidget);
+            }
+            m_sliceWidget->setFixedSize(SLICE_SIZE, SLICE_SIZE);
+            leftColumn->addWidget(m_sliceWidget);
+
+            // LOWER HALF OF LEFT COLUMN
             QVBoxLayout *controlBox = new QVBoxLayout();{
-                QHBoxLayout *sliceBox = new QHBoxLayout();{
-                    QLabel* sliceLabel = new QLabel("Slicing tools");
-                    sliceBox->addWidget(sliceLabel);
-                }controlBox->addLayout(sliceBox);
-                QHBoxLayout *cullBox = new QHBoxLayout();{
-                    QLabel* cullLabel= new QLabel("Culling tools");
-                    cullBox->addWidget(cullLabel);
-                }controlBox->addLayout(cullBox);
-                QHBoxLayout *loadBox = new QHBoxLayout;{
+
+                QHBoxLayout *loadBox = new QHBoxLayout();{
+                    loadBox->addWidget(new QLabel("Load"));
                     m_loadButton = new QPushButton("Load Volume");
                     m_lineEdit = new QLineEdit();
                     m_lineEdit->setFocus();
@@ -90,62 +93,102 @@ Window::Window()
                     loadBox->addWidget(m_examples);
                     loadBox->addWidget(m_loadButton);
                     connect(m_loadButton, SIGNAL(clicked()), this, SLOT(loadButtonClicked()));
-                }controlBox->addLayout(loadBox);
+                }
+                controlBox->addLayout(loadBox);
 
-                QVBoxLayout* simpleSliderBox = new QVBoxLayout();{
-                    QLabel* simpleSliderLabel = new QLabel("Simple Slicer");
-                    simpleSliderBox->addWidget(simpleSliderLabel);
+                // SLICE CONTROLS
+                QHBoxLayout* sliceBox = new QHBoxLayout();{
+                    m_sliceTab = new QTabWidget();{
 
-                    m_canonicalOrientationBox = new QGroupBox();{
-                        QHBoxLayout* radioBox = new QHBoxLayout();{
-                            m_canonicalOrientationButtons = new QRadioButton*[N_CANONICAL_ORIENTATIONS];
-                            for(int i=0; i<N_CANONICAL_ORIENTATIONS; i++){
-                                QLabel* radioLabel = new QLabel(g_canonical_orientation_captions[i]);
-                                radioBox->addWidget(radioLabel);
-                                m_canonicalOrientationButtons[i] = new QRadioButton();
-                                radioBox->addWidget(m_canonicalOrientationButtons[i]);
-                                connect(m_canonicalOrientationButtons[i], SIGNAL(clicked(bool)), this, SLOT(renderSlice()));
+                        // just the label
+                        QLabel* sliceLabel = new QLabel("Slice");
+                        sliceBox->addWidget(sliceLabel);
+
+                        // canonical orientations slicer
+                        QVBoxLayout* simpleSliderBox = new QVBoxLayout();{
+                                QLabel* simpleSliderLabel = new QLabel("Simple");
+                                simpleSliderBox->addWidget(simpleSliderLabel);
+
+                                m_canonicalOrientationBox = new QGroupBox();{
+                                    QHBoxLayout* radioBox = new QHBoxLayout();{
+                                        m_canonicalOrientationButtons = new QRadioButton*[N_CANONICAL_ORIENTATIONS];
+                                        for(int i=0; i<N_CANONICAL_ORIENTATIONS; i++){
+                                            QLabel* radioLabel = new QLabel(g_canonical_orientation_captions[i]);
+                                            radioBox->addWidget(radioLabel);
+                                            m_canonicalOrientationButtons[i] = new QRadioButton();
+                                            radioBox->addWidget(m_canonicalOrientationButtons[i]);
+                                            connect(m_canonicalOrientationButtons[i], SIGNAL(clicked(bool)), this, SLOT(renderSlice()));
+                                        }
+                                    }m_canonicalOrientationBox->setLayout(radioBox);
+                                    m_canonicalOrientationButtons[SAGITTAL]->setChecked(true);
+                                }simpleSliderBox->addWidget(m_canonicalOrientationBox);
+                                m_canonicalSliceSlider = new QSlider(Qt::Horizontal);
+                                m_canonicalSliceSlider->setRange(0,SLICE_EDGELENGTH);
+                                simpleSliderBox->addWidget(m_canonicalSliceSlider);
+                                connect(m_canonicalSliceSlider, SIGNAL(valueChanged(int)), this, SLOT(renderSlice()));
+                        }
+                        QWidget* simpleSliderWidget = new QWidget();
+                        simpleSliderWidget->setLayout(simpleSliderBox);
+                        m_sliceTab->addTab(simpleSliderWidget, "Simple");
+
+                        // arbitrary slicer
+                        QVBoxLayout* sliceSliderBox = new QVBoxLayout();{
+                            QLabel* sliceSliderLabel = new QLabel("Slicer");
+                            sliceSliderBox->addWidget(sliceSliderLabel);
+                            m_sliceSliders = new QSlider*[N_SLICE_SLIDERS];
+                            for(int i=0; i<N_SLICE_SLIDERS; i++){
+                                QHBoxLayout* sliderBox = new QHBoxLayout();{
+                                    QLabel* curLabel = new QLabel(g_slice_slider_captions[i]);
+                                    sliderBox->addWidget(curLabel);
+                                    m_sliceSliders[i] = new QSlider(Qt::Horizontal);
+                                    sliderBox->addWidget(m_sliceSliders[i]);
+                                } sliceSliderBox->addLayout(sliderBox);
                             }
-                        }m_canonicalOrientationBox->setLayout(radioBox);
-                        m_canonicalOrientationButtons[SAGITTAL]->setChecked(true);
-                    }simpleSliderBox->addWidget(m_canonicalOrientationBox);
-                    m_canonicalSliceSlider = new QSlider(Qt::Horizontal);
-                    m_canonicalSliceSlider->setRange(0,SLICE_EDGELENGTH);
-                    simpleSliderBox->addWidget(m_canonicalSliceSlider);
-                    connect(m_canonicalSliceSlider, SIGNAL(valueChanged(int)), this, SLOT(renderSlice()));
+                        }
+                        QWidget* sliceSliderWidget = new QWidget();
+                        sliceSliderWidget->setLayout(sliceSliderBox);
+                        m_sliceTab->addTab(sliceSliderWidget, "Pro");
+                    }
+                    sliceBox->addWidget(m_sliceTab);
+                }
+                controlBox->addLayout(sliceBox);
 
+                // OPTION TO SAVE SLICE, UNIVERSAL TO ALL TOOLS
+                QHBoxLayout *saveBox = new QHBoxLayout();{
+                    saveBox->addWidget(new QLabel("Save"));
 
-                    QLabel* savePathLabel = new QLabel(g_savepath_default);
-                    simpleSliderBox->addWidget(savePathLabel);
+//                    QLabel* savePathLabel = new QLabel(g_savepath_default);
+//                    saveBox->addWidget(savePathLabel);
 
                     m_sliceSavePath = new QLineEdit();
                     m_sliceSavePath->clear();
-                    simpleSliderBox->addWidget(m_sliceSavePath);
+                    saveBox->addWidget(m_sliceSavePath);
 
                     m_sliceSaveButton = new QPushButton("Save slice");
-                    simpleSliderBox->addWidget(m_sliceSaveButton);
+                    saveBox->addWidget(m_sliceSaveButton);
                     connect(m_sliceSaveButton, SIGNAL(clicked()), this, SLOT(saveSliceButtonClicked()));
 
-                }controlBox->addLayout(simpleSliderBox);
+                }
+                controlBox->addLayout(saveBox);
 
-//                QVBoxLayout* sliceSliderBox = new QVBoxLayout();{
-//                    QLabel* sliceSliderLabel = new QLabel("Slicer");
-//                    sliceSliderBox->addWidget(sliceSliderLabel);
-//                    m_sliceSliders = new QSlider*[N_SLICE_SLIDERS];
-//                    for(int i=0; i<N_SLICE_SLIDERS; i++){
-//                        QHBoxLayout* sliderBox = new QHBoxLayout();{
-//                            QLabel* curLabel = new QLabel(g_slice_slider_captions[i]);
-//                            sliderBox->addWidget(curLabel);
-//                            m_sliceSliders[i] = new QSlider(Qt::Horizontal);
-//                            sliderBox->addWidget(m_sliceSliders[i]);
-//                        } sliceSliderBox->addLayout(sliderBox);
-//                    }
-//                }controlBox->addLayout(sliceSliderBox);
+            }
+            leftColumn->addLayout(controlBox);
+//            controlWidget->setLayout(controlBox);
+//            leftColumn->addWidget(controlWidget);
 
-            } leftColumn->addLayout(controlBox);
-        }mainLayout->addLayout(leftColumn);
-    }mainLayout->addWidget(glWidget);
+//            QWidget* controlWidget = new QWidget();
 
+        }
+        mainLayout->addLayout(leftColumn);
+
+        // RIGHT HALF OF THE MAIN WINDOW
+        glWidget = new GLWidget();
+        glWidget->setFixedSize(RENDER_SIZE, RENDER_SIZE);
+        mainLayout->addWidget(glWidget);
+
+    }
+
+    // SET MAIN LAYOUT OF WINDOW
     setLayout(mainLayout);
     setWindowTitle(tr("VolumeViz"));
 }
