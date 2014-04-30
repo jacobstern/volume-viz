@@ -53,14 +53,8 @@
 using namespace std;
 
 
-//! [0]
 Window::Window()
 {
-
-
-//! [0]
-
-//! [1]
     // EVERYTHING GOES IN HERE
     QHBoxLayout *mainLayout = new QHBoxLayout;{
 
@@ -112,7 +106,7 @@ Window::Window()
                         // canonical orientations slicer
                         QVBoxLayout* simpleSliderBox = new QVBoxLayout();{
                                 m_canonicalOrientationBox = new QGroupBox();{
-                                    QHBoxLayout* radioBox = new QHBoxLayout();{
+                                    QVBoxLayout* radioBox = new QVBoxLayout();{
                                         m_canonicalOrientationButtons = new QRadioButton*[N_CANONICAL_ORIENTATIONS];
                                         for(int i=0; i<N_CANONICAL_ORIENTATIONS; i++){
                                             QLabel* radioLabel = new QLabel(g_canonical_orientation_captions[i]);
@@ -127,6 +121,7 @@ Window::Window()
                                 m_canonicalSliceSlider = new QSlider(Qt::Horizontal);
                                 m_canonicalSliceSlider->setRange(0,SLICE_EDGELENGTH);
                                 simpleSliderBox->addWidget(m_canonicalSliceSlider);
+                                m_canonicalSliceSlider->setValue(100);
                                 connect(m_canonicalSliceSlider, SIGNAL(valueChanged(int)), this, SLOT(renderSlice()));
                         }
                         QWidget* simpleSliderWidget = new QWidget();
@@ -160,6 +155,10 @@ Window::Window()
                     saveBox->addWidget(new QLabel("Save Slice:"));
 
                     m_fileFormats = new QComboBox();
+                    for(int i=0; i<N_OUTPUT_FILE_FORMATS; i++){
+                        m_fileFormats->addItem(g_output_file_formats[i]);
+                    }
+
                     m_sliceSaveButton = new QPushButton("Save slice");
                     connect(m_sliceSaveButton, SIGNAL(clicked()), this, SLOT(saveSliceButtonClicked()));
                     m_sliceSavePath = new QLineEdit();
@@ -176,13 +175,12 @@ Window::Window()
 
             }
             leftColumn->addLayout(controlBox);
-//            controlWidget->setLayout(controlBox);
-//            leftColumn->addWidget(controlWidget);
-
-//            QWidget* controlWidget = new QWidget();
 
         }
-        mainLayout->addLayout(leftColumn);
+        QWidget* leftColumnWidget = new QWidget();
+        leftColumnWidget->setLayout(leftColumn);
+        leftColumnWidget->setFixedWidth(LEFT_COLUMN_WIDTH);
+        mainLayout->addWidget(leftColumnWidget);
 
         // RIGHT HALF OF THE MAIN WINDOW
         glWidget = new GLWidget();
@@ -195,7 +193,7 @@ Window::Window()
     setLayout(mainLayout);
     setWindowTitle(tr("VolumeViz"));
 }
-//! [1]
+
 
 void Window::keyPressEvent(QKeyEvent *e)
 {

@@ -455,27 +455,6 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
 
     checkCudaErrors( cudaMemcpy3D(&params) );
 
-//    params.srcPtr.pitch = sizeof(byte)*width;
-//    params.srcPtr.ptr = texels;
-//    params.srcPtr.xsize = width;
-//    params.srcPtr.ysize = height;
-
-//    params.srcPos.x = 0;
-//    params.srcPos.y = 0;
-//    params.srcPos.z = 0;
-
-//    params.dstArray = devVolume;
-
-//    params.dstPos.x = 0;
-//    params.dstPos.y = 0;
-//    params.dstPos.z = 0;
-
-//    params.extent.width = width;
-//    params.extent.depth = depth;
-//    params.extent.height = height;
-
-//    params.kind = cudaMemcpyHostToDevice;
-
     // set addressmode
     texVolume.normalized = true;
     texVolume.filterMode = cudaFilterModeLinear;
@@ -486,56 +465,6 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
     checkCudaErrors( cudaBindTextureToArray(texVolume, devVolume, channelDesc));
 
     cout << "texture array has been memcopied" << endl;
-
-
-//    cout << "copying data back for testing" << endl;
-
-//    // Sanity check: Copy texture back
-//    byte* back_texels = new byte[size];
-//    memset(back_texels, '\0', size);
-
-
-//    cudaMemcpy3DParms back_params = {0};
-
-//    back_params.dstPtr.pitch = sizeof(byte) * width;
-//    back_params.dstPtr.ptr = back_texels;
-//    back_params.dstPtr.xsize = width;
-//    back_params.dstPtr.ysize = height;
-
-//    back_params.srcPos.x = 0;
-//    back_params.srcPos.y = 0;
-//    back_params.srcPos.z = 0;
-
-//    back_params.srcArray = tex_array;
-
-//    back_params.dstPos.x = 0;
-//    back_params.dstPos.y = 0;
-//    back_params.dstPos.z = 0;
-
-//    back_params.extent.width = width;
-//    back_params.extent.depth = depth;
-//    back_params.extent.height = height;
-
-//    back_params.kind = cudaMemcpyDeviceToHost;
-
-//    cout << "invoking" << endl;
-//    checkCudaErrors( cudaMemcpy3D(&back_params) );
-
-
-//    // TODO: Copy back for sanity check!
-//    for(int i=0; i<size; i++){
-//        if(texels[i] != back_texels[i]){
-//            printf("i: %d, texels: %u, back_texels: %u\n", i, texels[i], back_texels[i]);
-//            assert(false);
-
-
-//        }
-//    }
-
-
-
-//    cout << "data has been copied back for testing" << endl;
-
 
 }
 

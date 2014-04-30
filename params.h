@@ -16,6 +16,9 @@
 #define SLICE_SIZE 256
 #define RENDER_SIZE 512
 
+#define LEFT_COLUMN_WIDTH 450
+#define LEFT_COLUMN_HEIGHT 600
+
 
 static char *g_texture_names[N_DEFAULT_TEXTURES] = {"head",
                                                   "engine",
@@ -30,6 +33,9 @@ static char* g_slice_slider_captions[N_SLICE_SLIDERS] = {"dx", "dy", "dz", "thet
 
 typedef enum{ HORIZONTAL, SAGITTAL, CORONAL, N_CANONICAL_ORIENTATIONS} canonicalOrientation;
 static char* g_canonical_orientation_captions[N_CANONICAL_ORIENTATIONS] = {"horizontal", "sagittal", "coronal"};
+
+typedef enum{BMP, JPG, PNG, TIFF, N_OUTPUT_FILE_FORMATS} outputFileFormat;
+static const char* g_output_file_formats[N_OUTPUT_FILE_FORMATS] = {"BMP", "JPG", "PNG", "TIFF"};
 
 struct SliceParameters {
 
