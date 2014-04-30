@@ -74,6 +74,9 @@ public:
     void loadVolume(const char* path);
 //! [0]
 
+public slots:
+    void setPhongShading(bool);
+
 //! [2]
 protected:
     void initializeGL();
@@ -93,7 +96,7 @@ private:
     QVector2D dragStart, dragEnd;
 
     bool hasCuttingPlane;
-    QVector3D cutPoint, cutNormal;
+    QVector3D cutPoint, cutNormal, cutUp, cutRight;
 
     void drawProxyGeometry();
     void drawTextureQuad();
@@ -101,16 +104,23 @@ private:
 
     void loadShaderProgram(QGLShaderProgram &program, QString name);
 
-    void drawSomething();
-
     QtLogo *logo;
-    float scaleFactor;
     QPoint lastPos;
     QColor qtGreen;
     QColor qtPurple;
     GLuint resultBuffer, resultTexture;
     QGLShaderProgram firstPass, screen, ui;
     QGLFramebufferObject *framebuffers[GLWidget::N_FRAMEBUFFERS];
+
+    int resolutionScale;
+
+    int transferPreset;
+    bool  phongShading;
+
+    bool filterOutput;
+
+    bool renderingDirty;
+    float lastRenderTime;
 
     QFont font; // font for rendering text
 

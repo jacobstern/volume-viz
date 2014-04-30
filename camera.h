@@ -27,7 +27,7 @@ public slots:
 
     void updateView();
     QMatrix4x4 transformation();
-    QMatrix4x4 inverseTransformation();
+    QMatrix4x4 rotation();
 
 private:
     QVector3D position;

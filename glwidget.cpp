@@ -84,14 +84,18 @@ static inline float glc( float normalized )
     return normalized * 2.f - 1.f;
 }
 
+static inline float nrm( float glCoord )
+{
+    return (glCoord + 1.f) / 2.f;
+}
+
 //! [0]
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
-      font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f)
+      font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f), resolutionScale(4),
+      transferPreset(TRANSFER_PRESET_DEFAULT), phongShading(false), filterOutput(true)
 {
     logo = 0;
-
-    scaleFactor = 0.5;
 
     qtGreen = QColor::fromCmykF(0.40, 0.0, 1.0, 0.0);
     qtPurple = QColor::fromCmykF(0.39, 0.39, 0.0, 0.0);
@@ -109,8 +113,20 @@ GLWidget::GLWidget(QWidget *parent)
     didStartDragging = false;
     isDragging = false;
     hasCuttingPlane = false;
+
+    renderingDirty = true;
 }
 //! [0]
+
+void GLWidget::setPhongShading(bool shading)
+{
+    if (shading != phongShading) {
+        phongShading  = shading;
+        renderingDirty = true;
+
+        update();
+    }
+}
 
 //! [1]
 GLWidget::~GLWidget()
@@ -136,7 +152,7 @@ QSize GLWidget::minimumSizeHint() const
 QSize GLWidget::sizeHint() const
 //! [3] //! [4]
 {
-    return QSize(800, 600);
+    return QSize(768, 768);
 }
 //! [4]
 
@@ -163,8 +179,6 @@ void GLWidget::initializeGL()
 //! [7]
 void GLWidget::paintGL()
 {
-    clock_t t = clock();
-
     int width = this->width(), height = this->height();
 
     glEnable(GL_CULL_FACE);
@@ -219,27 +233,31 @@ void GLWidget::paintGL()
     struct camera_params cameraParams;
 
     QVector3D pos = camera->getPosition();
+
     cameraParams.origin[0] = pos.x();
     cameraParams.origin[1] = pos.y();
     cameraParams.origin[2] = pos.z();
+
     cameraParams.fovX      = fovX;
     cameraParams.fovY      = fovY;
 
-    runCuda( width, height, sliceParams, cameraParams, m_volumeArray);
+    struct shading_params shadingParams;
+
+    shadingParams.transferPreset = transferPreset;
+    shadingParams.phongShading   = phongShading;
 
     glBindBuffer( GL_PIXEL_UNPACK_BUFFER, resultBuffer);
 
-    // bind texture from PBO
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, resultBuffer);
+    glBindTexture(GL_TEXTURE_2D, resultTexture);
 
-    // Note: glTexSubImage2D will perform a format conversion if the
-    // buffer is a different format from the texture. We created the
-    // texture with format GL_RGBA8. In glTexSubImage2D we specified
-    // GL_BGRA and GL_UNSIGNED_INT. This is a fast-path combination
+    clock_t t = clock();
 
-    // Note: NULL indicates the data resides in device memory
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height,
+    if (renderingDirty) {
+        runCuda( width / resolutionScale, height / resolutionScale, sliceParams, cameraParams, shadingParams, m_volumeArray);
+    }
+
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width / resolutionScale, height / resolutionScale,
                     GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
     screen.bind();
@@ -250,21 +268,27 @@ void GLWidget::paintGL()
 
     drawTextureQuad();
 
-//    drawSomething();
-
-
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
     if (isDragging)
         showDragUI();
 
-    glFinish();
-    t = clock() - t;
+
+    if (renderingDirty) {
+        glFinish();
+        t = clock() - t;
+        lastRenderTime = (float) t / CLOCKS_PER_SEC;
+
+        renderingDirty = false;
+    }
+
 
     glUseProgram( 0 );
     glColor4f(1.f, 1.f, 1.f, 1.f);
-    renderText(10, 20, "Render time: " + QString::number( (double) t / CLOCKS_PER_SEC ) + " sec", font);
+    renderText(10, 20, "Resolution: "  + QString::number( width / resolutionScale )
+                                       + " x " + QString::number( height / resolutionScale ), font);
+    renderText(10, 34, "Render time: " + QString::number( (double) lastRenderTime ) + " sec", font);
 }
 //! [7]
 
@@ -304,7 +328,7 @@ void GLWidget::resizeGL(int width, int height)
         glDeleteBuffers(1, &resultBuffer);
     }
 
-    GLsizeiptr bufferSize = width * height * 4 * sizeof(GLubyte);
+    GLsizeiptr bufferSize = width * height * 4 * sizeof(GLubyte) / (resolutionScale * resolutionScale);
 
     glGenBuffers( 1, &resultBuffer );
     glBindBuffer( GL_PIXEL_UNPACK_BUFFER, resultBuffer );
@@ -319,12 +343,13 @@ void GLWidget::resizeGL(int width, int height)
 
     // Allocate the texture memory. The last parameter is NULL since we only
     // want to allocate memory, not initialize it
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
+    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width / resolutionScale, height / resolutionScale, 0,
               GL_BGRA,GL_UNSIGNED_BYTE, NULL);
 
-    // Must set the filter mode, GL_LINEAR enables interpolation when scaling
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    GLenum filterMode = filterOutput ? GL_LINEAR : GL_NEAREST;
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filterMode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filterMode);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -344,6 +369,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
         didStartDragging = true;
 
         hasCuttingPlane = false;
+        renderingDirty  = true;
     }
     else if (event->buttons() & Qt::RightButton) {
         lastPos = event->pos();
@@ -355,33 +381,42 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
     int dx = event->x() - lastPos.x();
-        int dy = event->y() - lastPos.y();
+    int dy = event->y() - lastPos.y();
 
-        if (event->buttons() & Qt::RightButton) {
-            // Stolen from CS224 Chameleon
-            QVector3D position = camera->getPosition();
+    if (event->buttons() & Qt::RightButton) {
+        // Stolen from CS224 Chameleon
+        QVector3D position = camera->getPosition();
 
-            float r = position.length(),
-                  theta = acos( double(position.y() / r) ) - dy / 200.f,
-                  phi = atan2( position.z(), position.x() ) + dx / 200.f;
+        float r = position.length(),
+              theta = acos( double(position.y() / r) ) - dy / 200.f,
+              phi = atan2( position.z(), position.x() ) + dx / 200.f;
 
-            if (theta < 0.1f)
-                theta = 0.1f;
+        if (theta < 0.1f)
+            theta = 0.1f;
 
-            if (theta > M_PI - 0.1f)
-                theta = M_PI - 0.1f;
+        if (theta > M_PI - 0.1f)
+            theta = M_PI - 0.1f;
 
-            camera->setPosition( QVector3D( r * sin(theta) * cos(phi), r * cos(theta), r * sin(theta) * sin(phi) ) );
-            camera->lookAt( QVector3D(0.f, 0.f, 0.f) );
-        }
-        lastPos = event->pos();
+        camera->setPosition( QVector3D( r * sin(theta) * cos(phi), r * cos(theta), r * sin(theta) * sin(phi) ) );
+        camera->lookAt( QVector3D(0.f, 0.f, 0.f) );
 
-        if (didStartDragging) {
-            isDragging = true;
-            dragEnd = QVector2D( lastPos.x() / (float) width(), lastPos.y() / (float) height() );
-        }
+        renderingDirty = true;
+    } else if (event->buttons() & Qt::MiddleButton && hasCuttingPlane) {
+        cutPoint = cutPoint + cutRight * dx / ( width()  );
+        cutPoint = cutPoint + cutUp    * dy / ( height() );
 
-        update();
+        renderingDirty = true;
+    }
+
+
+    lastPos = event->pos();
+
+    if ( (event->buttons() & Qt::LeftButton) && didStartDragging) {
+        isDragging = true;
+        dragEnd = QVector2D( lastPos.x() / (float) width(), lastPos.y() / (float) height() );
+    }
+
+    update();
 }
 //! [10]
 
@@ -395,9 +430,11 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         QMatrix4x4 inverse = ( perspective * camera->transformation() ).inverted( &success );
 
         QVector4D front = inverse * QVector4D( glc( window.x() ), -glc( window.y() ), -1.f, 1.f ),
-                back  = inverse * QVector4D( glc( window.x() ), -glc( window.y() ),  1.f, 1.f ),
-                side  = inverse * QVector4D( glc( dragStart.x() ), -glc( dragStart.y() ),
-                                             -1.f, 1.f );
+                  back  = inverse * QVector4D( glc( window.x() ), -glc( window.y() ),  1.f, 1.f ),
+                  side  = inverse * QVector4D( glc( dragStart.x() ), -glc( dragStart.y() ),
+                                             -1.f, 1.f ),
+                  up    = inverse * QVector4D( 0.f, -1.f, 0.f, 0.f ),
+                  right = inverse * QVector4D( 1.f,  0.f, 0.f, 0.f );
 
         front /= front.w();
         back  /= back.w();
@@ -406,20 +443,29 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         Q_ASSERT( success );
 
         QVector4D a = (back - front).normalized(),
-                b = (side - front).normalized();
+                  b = (side - front).normalized();
 
         QVector3D p( front.x(), front.y(), front.z() ),
                   n( QVector3D::crossProduct(
                        QVector3D( a.x(), a.y(), a.z() ),
                        QVector3D( b.x(), b.y(), b.z() ) ) );
 
+        p.setX( nrm( p.x() ) );
+        p.setY( nrm( p.y() ) );
+        p.setZ( nrm( p.z() ) );
+
         hasCuttingPlane = true;
+        renderingDirty  = true;
+
         cutPoint = p;
         cutNormal = n;
-    }
 
-    isDragging = false;
-    didStartDragging = false;
+        cutUp    = QVector3D( up.x(), up.y(), up.z() );
+        cutRight = QVector3D( right.x(), right.y(), right.z() );
+
+        isDragging = false;
+        didStartDragging = false;
+    }
 
     update();
 }
@@ -492,29 +538,6 @@ void GLWidget::drawTextureQuad()
     CHECK_GL_ERROR_DEBUG();
 }
 
-void GLWidget::drawSomething()
-{
-    glDisable(GL_DEPTH_TEST);
-
-    glBegin(GL_QUADS);
-
-//    glTexCoord2f( 0.0, 0.0 );
-    glVertex3f( -0.5, -0.5, 0.0 );
-
-//    glTexCoord2f( 1.0, 0.0 );
-    glVertex3f( 0.5, -0.5, 0.0 );
-
-//    glTexCoord2f( 1.0, 1.0 );
-    glVertex3f( 0.5, 0.5, 0.0 );
-
-//    glTexCoord2f( 0.0, 1.0 );
-    glVertex3f( -0.5, 0.5, 0.0 );
-
-    glEnd();
-
-    CHECK_GL_ERROR_DEBUG();
-}
-
 //! [12]
 
 void GLWidget::wheelEvent(QWheelEvent *event)
@@ -528,6 +551,8 @@ void GLWidget::wheelEvent(QWheelEvent *event)
 
         update();
     }
+
+    renderingDirty = true;
 }
 
 void GLWidget::showDragUI()
@@ -585,7 +610,15 @@ void GLWidget::loadVolume(const char* path)
     m_volgen->loadfrom_raw(path, true);
     cout << "brain has been loaded from file" << endl;
 
-
+    if (QString(path).endsWith("engine.t3d")) {
+        transferPreset = TRANSFER_PRESET_ENGINE;
+    }
+    else if (QString(path).endsWith("head.t3d")) {
+        transferPreset = TRANSFER_PRESET_MRI;
+    }
+    else {
+        transferPreset = TRANSFER_PRESET_DEFAULT;
+    }
 
     size_t size;
     byte* texels = m_volgen->getBytes(size);
@@ -597,6 +630,10 @@ void GLWidget::loadVolume(const char* path)
 
     delete m_volgen;
 
+    renderingDirty  = true;
+    hasCuttingPlane = false;
+
+    update();
 }
 
 

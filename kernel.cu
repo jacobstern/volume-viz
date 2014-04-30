@@ -15,14 +15,31 @@
 
 #include <iostream>
 
+#include "implicit.cu"
+
 using std::cout;
 using std::endl;
-#include "implicit.cu"
+
+// TODO: Don't hardcode this
+#define STEP_SIZE 0.00390625f // 1/256
+
+#define CACHE_DEPTH             32
+#define CACHE_DEPTH_MINUS_TWOF  30.f
+
+#define DIRECT_FACTOR           0.3f
+#define ONE_MINUS_DIRECT_FACTOR 0.7f
+
+#define BLOCK_WIDTH             16
+#define BLOCK_HEIGHT            16
+
+#define SQRT_3 1.73205081f
 
 static struct cudaGraphicsResource *pixelBuffer, *texture0, *texture1;
 
 typedef texture<uchar4, cudaTextureType2D, cudaReadModeElementType> inTexture2D;
 inTexture2D inTexture0, inTexture1;
+
+typedef unsigned char uchar;
 
 // volumetric texture
 texture<unsigned char, cudaTextureType3D, cudaReadModeNormalizedFloat> texVolume;
@@ -49,6 +66,13 @@ bool boundsCheck(float3 pos)
             && pos.z < 1.0f && pos.z >= 0.0f;
 }
 
+__device__ unsigned char getVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, int offset) {
+    if (offset < 0 || offset + 1 > CACHE_DEPTH)
+        return 0x00;
+
+    return sharedMemory[ offset * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
+}
+
 __device__
 float blockMin(float shared[], int idx, int upper, float poll)
 {
@@ -69,157 +93,88 @@ float blockMin(float shared[], int idx, int upper, float poll)
 }
 
 __device__
-float4 sampleVolume(float3 pos)
-{
-    // TODO: Sample from volume texture
-//    if (pos.x > 1.f || pos.y > 1.f || pos.z > 1.f
-//            || pos.x < 0.f || pos.y < 0.f || pos.z < 0.f) {
-//        return make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-//    }
-
-//    if ((pos.x - .5f) * (pos.x - .5f) + (pos.z - .5f) * (pos.z - .5f) < .25) {
-//       return make_float4(1.f, 1.f, 1.f, 0.01f);
-//    }
-//    else {
-//       return make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-//    }
-
-    if(pos.x < 0.0 || pos.x > 1.0 || pos.y < 0.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0){
-        return make_float4(1.0, 0, 0, 1.0);
-    }
-
-//    float cof = STEP_SIZE*STEP_SIZE*STEP_SIZE/23;
-    float cof = 1.0;
-    float x = pos.x*cof;
-    float y = pos.y*cof;
-    float z = pos.z*cof;
-
-    byte sample = tex3D(texVolume, x, y, z);
-    float s = ((float)sample)/255.0;
-
-    float r = s;
-    float g = s;
-    float b = 5*s;
-    float a = 0.05;
-
-    return make_float4(r, g, b, a);
-
-//    if(sample == 1){
-//        return make_float4(0.5, 0.0, 0, 1);
-
-//    }else if(sample == 2){
-//        return make_float4(0.0, 0.5, 0.0, 1);
-
-//    }else if(sample == 3){
-//        return make_float4(0.0, 0.0, 0.5, 1);
-
-//    }else if(sample == 4){
-//        return make_float4(0.0, 0.5, 0.5, 1);
-
-//    }else if(sample == 5){
-//        return make_float4(0.5, 0.0, 0.5, 1);
-
-//    }else{
-//        return make_float4(sample, sample, sample, 0.05)/8;
-//    }
-
-//    return make_float4(sample, sample, sample, 0.05)/122;
-}
-
-#define MAX_STEPS 31
-
-__device__
 unsigned char sample(float3 pos) {
-    if ( !boundsCheck(pos) ) {
+    if ( boundsCheck(pos) )
+        return 0xff * tex3D(texVolume, pos.x, pos.y, pos.z);
+    else
         return 0x00;
-    }
-
-    return 0xff * tex3D(texVolume, pos.x, pos.y, pos.z);
 }
 
 __device__
-void rayMarch(unsigned char sharedMemory[], float3 origin, float3 step, dim3 cacheIdx, dim3 cacheDim, int lower=0, int upper=MAX_STEPS) {
-    float3 pos = origin + lower * step;
-    unsigned char i = 0x00;
+float4 blend(float4 src, float4 dst) {
+    float4 ret;
+    float blendFactor = src.w * (1.f - dst.w);
 
-    for (; i < lower; ++i)
-        sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
-                = 0x00;
+    ret.x = dst.x + src.x * blendFactor;
+    ret.y = dst.y + src.y * blendFactor;
+    ret.z = dst.z + src.z * blendFactor;
+    ret.w = dst.w +         blendFactor;
 
-    for (; i < upper; ++i) {
-        if (pos.x < 1.0f && pos.x >= 0.0f
-                && pos.y < 1.0f && pos.y >= 0.0f
-                && pos.z < 1.0f && pos.z >= 0.0f) {
-            break;
-        }
+    return ret;
+}
 
-        sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
-                = sample(pos);
+template<int _transferPreset>
+__device__
+float4 transferFunction(uchar sampled) {
+    float asFloat = ucharToFloat( sampled );
+
+    switch(_transferPreset) {
+
+    case TRANSFER_PRESET_ENGINE:
+
+        return make_float4( asFloat, asFloat, asFloat, clamp(asFloat * asFloat * 2.f, 0.f, 1.f) );
+
+    case TRANSFER_PRESET_MRI:
+
+        float highlight   = 0.6,
+              adjust      = 1.f - 5.f * fabs(highlight - asFloat),
+              adjusted    = clamp( asFloat + adjust * .3, asFloat, 1.f );
+
+        return make_float4( asFloat, adjusted, asFloat, adjusted * adjusted * 0.05);
+
+    }
+
+}
+
+__device__
+void rayMarch(unsigned char cache[],
+              dim3   cacheIdx,
+              dim3   cacheDim,
+              float3 origin,
+              float3 direction) {
+    float3 pos  = origin,
+           step = direction * STEP_SIZE;
+
+    for (int i = 0; i < CACHE_DEPTH; ++i) {
+        uchar sampled = sample( pos );
+
+        cache[ i * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
+                = sampled;
 
         pos += step;
     }
-
-
-    for (; i < upper; ++i) {
-        if (pos.x >= 1.0f || pos.x < 0.0f
-                || pos.y >= 1.0f || pos.y < 0.0f
-                || pos.z >= 1.0f || pos.z < 0.0f) {
-            break;
-        }
-
-        sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
-                = sample(pos);
-
-        pos += step;
-    }
-
-    sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ] = i;
-
-    // Fill up the rest of the cache with zeros
-
-    for (; i < MAX_STEPS; ++i)
-        sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
-                = 0x00;
 
     __syncthreads();
 }
 
+template<int _sliceType, int _transferPreset>
 __device__
-float4 shadePhong(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim) {
-    unsigned char upper = sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ];
+float4 shadeVoxel(unsigned char sharedMemory[],
+                  dim3 cacheIdx,
+                  dim3 cacheDim,
+                  int offset,
+                  float3 voxelPos,
+                  float3 voxelDim,
+                  float3 slicePoint,
+                  float3 sliceNormal,
+                  bool phongShading) {
 
-    for (unsigned char i = 0; i < upper; ++i) {
-        unsigned char sampled =  sharedMemory[ (i + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
+    uchar sampled
+             = getVoxel( sharedMemory, cacheIdx, cacheDim, offset );
 
-        if (sampled) {
-            return make_float4(1.f, 1.f, 1.f, 1.f);
-        }
-    }
+    float4 value = transferFunction<_transferPreset>( sampled );
 
-    return make_float4(0.f, 0.f, 0.f, 0.f);
-}
-
-__device__ unsigned char getVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, int offset) {
-    if (offset < 0 || offset + 1 > MAX_STEPS)
-        return 0x00;
-
-    return sharedMemory[ (offset + 1) * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ];
-}
-
-#define DEBUG_TRANSPARENT
-
-__device__
-float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, int offset, float stepSize, float tanFovX, float tanFovY) {
-#ifdef DEBUG_TRANSPARENT
-    unsigned char sampled =  getVoxel(sharedMemory, cacheIdx, cacheDim, offset);
-
-    return make_float4(sampled / 255.f, sampled / 255.f, sampled / 255.f, sampled * stepSize / 255.f);
-#endif
-
-#ifdef DEBUG_PHONG
-    unsigned char c = getVoxel(sharedMemory, cacheIdx, cacheDim, offset);
-
-    if ( c ) {
+    if ( phongShading && value.w > 1e-6 ) {
         float l, r, t, b, f, a;
 
         f = ucharToFloat( getVoxel(sharedMemory, cacheIdx, cacheDim, offset - 1) );
@@ -230,60 +185,93 @@ float4 shadeVoxel(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, in
         t = ucharToFloat( getVoxel(sharedMemory, dim3(cacheIdx.x, cacheIdx.y + 1), cacheDim, offset) );
         b = ucharToFloat( getVoxel(sharedMemory, dim3(cacheIdx.x, cacheIdx.y - 1), cacheDim, offset) );
 
-        float3 gradient = make_float3(0.f, 0.f, 0.f);
-        gradient.x = (r - l) / (tanFovX * offset * stepSize);
-        gradient.y = (t - b) / (tanFovY * offset * stepSize);
-        gradient.z = (a - f) / (stepSize * 2.f);
+        float3 gradient = make_float3(
+                    (r - l) / voxelDim.x,
+                    (t - b) / voxelDim.y,
+                    (a - f) / voxelDim.z );
 
-        gradient = normalize(gradient);
+        if (gradient.x != 0.f && gradient.y != 0.f&& gradient.z != 0.f)
+            gradient = normalize(gradient);
 
-        return make_float4(fabs(gradient.x), fabs(gradient.y), fabs(gradient.z), 1.f);
+        float  direct = dot( gradient, make_float3( -1.f, -1.f, 1.f ) ) * DIRECT_FACTOR;
+        direct        = clamp(direct, 0.f, DIRECT_FACTOR);
+
+        value =  make_float4( value.x * ONE_MINUS_DIRECT_FACTOR,
+                              value.y * ONE_MINUS_DIRECT_FACTOR,
+                              value.z * ONE_MINUS_DIRECT_FACTOR,
+                              value.w );
+        value += make_float4( direct, direct, direct, 0.f );
     }
 
-#endif
-
-    return make_float4(0.f, 0.f, 0.f, 0.f);
-}
-
-__device__
-float4 shade(unsigned char sharedMemory[], dim3 cacheIdx, dim3 cacheDim, float normalize, struct camera_params cameraParams, int width, int height) {
-    unsigned char upper = sharedMemory[ cacheIdx.y * cacheDim.x + cacheIdx.x ];
-    float4 accum = make_float4(0.f, 0.f, 0.f, 0.f);
-
-    double tanFovX = tan( cameraParams.fovX * M_PI / (180.f * width ) ),
-           tanFovY = tan( cameraParams.fovY * M_PI / (180.f * height) );
-
-    for (unsigned char i = 0x00; i < upper; ++i) {
-        float4 vox = shadeVoxel(sharedMemory, cacheIdx, cacheDim, i, normalize, tanFovX, tanFovY);
-
-        if (vox.w > 1e-6) {
-            accum.x += vox.x * vox.w * (1.f - accum.w);
-            accum.y += vox.y * vox.w * (1.f - accum.w);
-            accum.z += vox.z * vox.w * (1.f - accum.w);
-            accum.w += vox.w * (1.f - accum.w);
-
-            if (accum.w > .95f) {
-                break;
-            }
+    if (_sliceType == SLICE_PLANE) {
+        float dist = distanceToPlane( slicePoint, sliceNormal, voxelPos );
+        if (dist < .01f) {
+            value.x = clamp( value.x + (.01f - dist ) * 100.f, 0.f, 1.f );
         }
     }
 
-    accum.x = fminf(accum.x, 1.f);
-    accum.y = fminf(accum.y, 1.f);
-    accum.z = fminf(accum.z, 1.f);
-    accum.w = fminf(accum.w, 1.f);
-
-    return accum;
+    return value;
 }
 
-#define SQRT_3 1.73205081f
+template<int _sliceType, int _transferPreset>
+__device__
+void mainLoop(uchar cache[],
+              dim3 cacheIdx,
+              dim3 cacheDim,
+              dim3 imageDim,
+              camera_params camera,
+              slice_params slice,
+              shading_params shading,
+              float3 origin,
+              float3 direction,
+              float upper,
+              float4 & result)
+{
+    float  dist = 0.f;
+    result = make_float4( 0.f, 0.f, 0.f, 0.f );
 
+    float  tanFovX = tan( camera.fovX * M_PI / (180.f * imageDim.x ) ),
+           tanFovY = tan( camera.fovY * M_PI / (180.f * imageDim.y ) );
+
+    float3 slicePoint  = make_float3( slice.params[0], slice.params[1], slice.params[2] ),
+           sliceNormal = make_float3( slice.params[3], slice.params[4], slice.params[5] );
+
+    while ( dist < upper ) { // No infinite loop plz
+        float3 pos = origin + direction * dist;
+
+        rayMarch( cache, cacheIdx, cacheDim, pos, direction );
+
+        for (int i = 1; i < CACHE_DEPTH - 1; ++i) {
+            float voxelDist = i * STEP_SIZE + dist;
+            float3 voxelDim = make_float3(
+                        tanFovX * ( voxelDist ),
+                        tanFovY * ( voxelDist ),
+                        STEP_SIZE * 2.f
+                        ),
+                   voxelPos = origin + direction * voxelDist;
+            float4 shaded = shadeVoxel<_sliceType, _transferPreset>( cache, cacheIdx, cacheDim, i, voxelPos, voxelDim, slicePoint, sliceNormal, shading.phongShading );
+
+            if (shaded.w > 1e-6) {
+                result = blend( shaded, result );
+            }
+
+            if (result.w > .95f) {
+                break;
+            }
+        }
+
+        dist += STEP_SIZE * CACHE_DEPTH_MINUS_TWOF;
+    }
+}
+
+template<int _sliceType, int _transferPreset>
 __global__
 void kernel(void *buffer,
             int width,
             int height,
-            struct slice_params slice,
-            struct camera_params camera )
+            struct camera_params camera,
+            struct slice_params   slice,
+            struct shading_params shading)
 {
     extern __shared__ unsigned char sharedMemory[];
     uchar4 *pixels = (uchar4*) buffer;
@@ -311,8 +299,8 @@ void kernel(void *buffer,
         slabIndex = slabY * slabWidth + slabX,
         slabUpper = slabHeight * slabWidth;
 
-    uchar4 sample0 = tex2D( inTexture0, x, y ),
-           sample1 = tex2D( inTexture1, x, y );
+    uchar4 sample0 = tex2D( inTexture0, (float) x / width, (float) y / height ),
+           sample1 = tex2D( inTexture1, (float) x / width, (float) y / height );
 
     float3 front = make_float3(sample0.x / 255.f, sample0.y / 255.f, sample0.z / 255.f),
            back  = make_float3(sample1.x / 255.f, sample1.y / 255.f, sample1.z / 255.f);
@@ -337,13 +325,6 @@ void kernel(void *buffer,
     float3 ray   = dist / length,
            pos   = front;
 
-    if (slice.type == SLICE_PLANE) {
-        float3 point  = make_float3( slice.params[0], slice.params[1], slice.params[2] ),
-               normal = make_float3( slice.params[3], slice.params[4], slice.params[5] );
-
-        // TODO: Slicing
-    }
-
     float t;
     bool success = intersectSphereAndRay(camPos, rad, front, -ray, t);
     if (success) {
@@ -351,20 +332,22 @@ void kernel(void *buffer,
         pos = pos - ray * t;
     }
 
-    float  distActual = vectorLength(back - pos),
-           stepSize = fminf( SQRT_3, distActual ) / MAX_STEPS;
-
-    float3 step = ray * stepSize;
+    float upper = fminf( SQRT_3, vectorLength( back - pos ) );
 
     dim3 cacheIdx(slabX, slabY),
-         cacheDim(slabWidth, slabHeight);
+         cacheDim(slabWidth, slabHeight),
+         imageDim(width, height);
 
-    rayMarch(sharedMemory, pos, step, cacheIdx, cacheDim);
+    float4 result;
+    mainLoop<_sliceType, _transferPreset>(sharedMemory, cacheIdx, cacheDim, imageDim, camera, slice, shading, pos, ray, upper, result);
 
     if (!isBorder) {
-        float4 shaded = shade(sharedMemory, cacheIdx, cacheDim, stepSize, camera, width, height);
+        result.x = clamp(result.x, 0.f, 1.f);
+        result.y = clamp(result.y, 0.f, 1.f);
+        result.z = clamp(result.z, 0.f, 1.f);
+        result.w = clamp(result.w, 0.f, 1.f);
 
-        pixels[index] = make_uchar4(shaded.x * 0xff, shaded.y * 0xff, shaded.z * 0xff, shaded.w * 0xff);
+        pixels[index] = make_uchar4(result.x * 0xff, result.y * 0xff, result.z * 0xff, result.w * 0xff);
     }
 }
 
@@ -382,9 +365,16 @@ void registerCudaResources(GLuint input0, GLuint input1, GLuint output) {
     checkCudaErrors( cudaGraphicsGLRegisterImage(&texture0, input0, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly) );
     checkCudaErrors( cudaGraphicsGLRegisterImage(&texture1, input1, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly) );
     checkCudaErrors( cudaGraphicsGLRegisterBuffer(&pixelBuffer, output, cudaGraphicsRegisterFlagsWriteDiscard) );
+
+    inTexture0.normalized = true;
+    inTexture1.normalized = true;
 }
 
-void runCuda(int width, int height, struct slice_params slice, struct camera_params camera,
+void runCuda(int width,
+             int height,
+             struct slice_params slice,
+             struct camera_params camera,
+             struct shading_params shading,
              cudaArray* volumeArray) {
     cudaGraphicsResource_t resources[3] = { texture0, texture1, pixelBuffer };
 
@@ -403,21 +393,60 @@ void runCuda(int width, int height, struct slice_params slice, struct camera_par
     checkCudaErrors( cudaGraphicsResourceGetMappedPointer(&devBuffer, &bufferSize, pixelBuffer) );
 
     // For convenience, greedily chunk the screen into 14x14 squares
-    dim3 blockSize(14, 14),
-         blockDims(width / blockSize.x, height / blockSize.y);
-    if (width % blockSize.x)
+    dim3 slabSize(BLOCK_WIDTH - 2, BLOCK_HEIGHT - 2),
+         blockDims(width / slabSize.x, height / slabSize.y),
+         blockSize(BLOCK_WIDTH, BLOCK_HEIGHT);
+
+    if (width % slabSize.x)
         ++blockDims.x;
-    if (height % blockSize.y)
+    if (height % slabSize.y)
         ++blockDims.y;
 
-//    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<uchar1>();
-//    checkCudaErrors( cudaBindTextureToArray(texVolume, volumeArray, channelDesc));
+    size_t sharedMemSize = ( CACHE_DEPTH ) * ( blockSize.x ) * ( blockSize.y ) * sizeof( uchar );
 
-    blockSize.x += 2;
-    blockSize.y += 2;
+    switch( slice.type ) {
 
-    size_t sharedMemSize = ( MAX_STEPS + 1 ) * ( blockSize.x ) * ( blockSize.y ) * sizeof( unsigned char );
-    kernel<<< blockDims, blockSize, sharedMemSize >>>(devBuffer, width, height, slice, camera);
+    case SLICE_NONE:
+
+        switch( shading.transferPreset ) {
+
+        case TRANSFER_PRESET_ENGINE:
+
+            kernel< SLICE_NONE, TRANSFER_PRESET_ENGINE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
+
+            break;
+
+        case TRANSFER_PRESET_MRI:
+
+            kernel< SLICE_NONE, TRANSFER_PRESET_MRI    ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
+
+            break;
+
+        }
+
+        break;
+
+    case SLICE_PLANE:
+
+        switch( shading.transferPreset ) {
+
+        case TRANSFER_PRESET_ENGINE:
+
+            kernel< SLICE_PLANE, TRANSFER_PRESET_ENGINE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
+
+            break;
+
+        case TRANSFER_PRESET_MRI:
+
+            kernel< SLICE_PLANE, TRANSFER_PRESET_MRI    ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
+
+            break;
+
+        }
+
+        break;
+    }
+
 
     checkCudaErrors( cudaUnbindTexture(inTexture0) );
 
@@ -434,11 +463,7 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
 
     cudaExtent extent = make_cudaExtent( dims.x, dims.y, dims.z );
     checkCudaErrors( cudaMalloc3DArray(&devVolume, &channelDesc, extent) );
-    cout << "texture array has been malloced" << endl;
 
-    cout << "size: " << size << endl;
-
-    cout << "memcopying texture array" << endl;
     assert(texels);
     assert(devVolume);
     assert(size);
@@ -458,11 +483,12 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
     // set addressmode
     texVolume.normalized = true;
     texVolume.filterMode = cudaFilterModeLinear;
-    texVolume.addressMode[0] = cudaAddressModeWrap;
-    texVolume.addressMode[1] = cudaAddressModeWrap;
-    texVolume.addressMode[2] = cudaAddressModeWrap;
+    texVolume.addressMode[0] = cudaAddressModeClamp;
+    texVolume.addressMode[1] = cudaAddressModeClamp;
+    texVolume.addressMode[2] = cudaAddressModeClamp;
 
     checkCudaErrors( cudaBindTextureToArray(texVolume, devVolume, channelDesc));
+
 
     cout << "texture array has been memcopied" << endl;
 

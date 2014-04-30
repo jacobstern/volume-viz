@@ -64,14 +64,15 @@ void Camera::updateView()
 //    }
 }
 
-QMatrix4x4 Camera::inverseTransformation()
+QMatrix4x4 Camera::rotation()
 {
-    bool invertible;
+    QVector3D side = QVector3D::crossProduct(look,   up).normalized(),
+              up   = QVector3D::crossProduct(side, look).normalized();
 
-    QMatrix4x4 result = transform.inverted( &invertible );
-    Q_ASSERT( invertible );
-
-    return result;
+    return QMatrix4x4( side.x(),   side.y(),   side.z(),   0.f,
+                       up.x(),     up.y(),     up.z(),     0.f,
+                       -look.x(),  -look.y(),  -look.z(),  0.f,
+                       0.f,        0.f,        0.f,        1.f );
 }
 
 QMatrix4x4 Camera::transformation()
@@ -94,7 +95,4 @@ void Camera::lazyComputeTransform()
                             0.0f,       1.0f,       0.0f,       -position.y(),
                             0.0f,       0.0f,       1.0f,       -position.z(),
                             0.0f,       0.0f,       0.0f,       1.0f );
-
-    // qDebug() << transform;
-    // transform.translate( position.x(), position.y(), position.z() );
 }

@@ -52,7 +52,6 @@
 
 using namespace std;
 
-
 Window::Window()
 {
     // EVERYTHING GOES IN HERE
@@ -73,7 +72,6 @@ Window::Window()
 
                 QVBoxLayout *loadBox = new QVBoxLayout();{
                     loadBox->addWidget(new QLabel("Load Model:"));
-
                     m_loadButton = new QPushButton("Load Volume");
                     m_lineEdit = new QLineEdit();
                     m_lineEdit->setFocus();
@@ -92,6 +90,7 @@ Window::Window()
                     loadBox->addLayout(loadGrid);
 
                     connect(m_loadButton, SIGNAL(clicked()), this, SLOT(loadButtonClicked()));
+
                 }
                 controlBox->addLayout(loadBox);
 

@@ -96,6 +96,7 @@ private:
     QPushButton* m_loadButton;
     QLineEdit* m_lineEdit;
     QComboBox* m_examples;
+    QCheckBox* m_phongShading;
 
     QSlider**   m_sliceSliders;
 

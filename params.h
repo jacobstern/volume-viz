@@ -58,6 +58,4 @@ struct BufferParameters {
     size_t width;
 };
 
-
-
 #endif // PARAMS_H
