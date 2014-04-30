@@ -6,6 +6,7 @@
 #define VOLUME_RESOLUTION 256
 
 #define DEFAULT_TEXTURE_PATH "/home/rmartens/shared/cs224textures/head.t3d"
+#define DEFAULT_SAVE_PATH "/home/rmartens/shared/cs224slices/myfirstslice.jpg"
 
 #define N_SLICE_SLIDERS 6
 

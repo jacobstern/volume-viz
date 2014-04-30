@@ -163,6 +163,7 @@ Window::Window()
                     connect(m_sliceSaveButton, SIGNAL(clicked()), this, SLOT(saveSliceButtonClicked()));
                     m_sliceSavePath = new QLineEdit();
                     m_sliceSavePath->clear();
+                    m_sliceSavePath->insert(DEFAULT_SAVE_PATH);
 
                     QGridLayout* saveGrid = new QGridLayout();
                     saveGrid->addWidget(m_sliceSavePath, 0, 0, 1, 2);

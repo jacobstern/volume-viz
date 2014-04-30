@@ -107,11 +107,12 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
     delete m_sliceImage;
     m_sliceImage = new QImage(bufferParameters.width, bufferParameters.height, QImage::Format_RGB32);
     BGRA* bits = new BGRA[bufferParameters.width*bufferParameters.height];
+    int size = bufferParameters.width*bufferParameters.height;
     for(int j=0; j<bufferParameters.height; j++){
         for(int i=0; i<bufferParameters.width; i++){
             int offset = j*bufferParameters.height+i;
             unsigned int val =(unsigned int)( m_sliceBuffer[offset]*255 );
-            bits[offset] = BGRA(val, val, val, 255);
+            bits[size-offset] = BGRA(val, val, val, 255);
         }
     }
     memcpy(m_sliceImage->bits(), bits, bufferParameters.width*bufferParameters.height*sizeof(BGRA));
@@ -126,7 +127,7 @@ void SliceWidget::paintEvent(QPaintEvent *)
     QPainter painter(this);
 //    cout << "drawing image" << endl;
     if(m_sliceImage){
-        painter.drawImage(QPoint(0,0), m_sliceImage->mirrored(true, true));
+        painter.drawImage(QPoint(0,0), *m_sliceImage);
     }
 //    cout << "image drawn" << endl;
     update();
