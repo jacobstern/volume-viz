@@ -98,7 +98,7 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
         for(int i=0; i<bufferParameters.width; i++){
             int offset = j*bufferParameters.height+i;
             unsigned int val =(unsigned int)( m_sliceBuffer[offset]*255 );
-            bits[offset] = BGRA(0, 100, 0, 255);
+            bits[offset] = BGRA(val, val, val, 255);
         }
     }
     memcpy(m_sliceImage->bits(), bits, bufferParameters.width*bufferParameters.height*sizeof(BGRA));
