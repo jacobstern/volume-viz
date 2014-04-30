@@ -79,14 +79,11 @@ Window::Window()
             m_sliceWidget = new SliceWidget();{
             }leftColumn->addWidget(m_sliceWidget);
             QVBoxLayout *controlBox = new QVBoxLayout();{
-                QHBoxLayout *sliceBox = new QHBoxLayout();{
-                    QLabel* sliceLabel = new QLabel("Slicing tools");
-                    sliceBox->addWidget(sliceLabel);
-                }controlBox->addLayout(sliceBox);
-                QHBoxLayout *cullBox = new QHBoxLayout();{
-                    QLabel* cullLabel= new QLabel("Culling tools");
-                    cullBox->addWidget(cullLabel);
-                }controlBox->addLayout(cullBox);
+                QHBoxLayout *debugSettings = new QHBoxLayout();{
+                    m_phongShading = new QCheckBox("Phong shading");
+                    connect(m_phongShading, SIGNAL(clicked(bool)), glWidget, SLOT(setPhongShading(bool)));
+                    debugSettings->addWidget(m_phongShading);
+                } controlBox->addLayout(debugSettings);
                 QHBoxLayout *loadBox = new QHBoxLayout;{
                     m_loadButton = new QPushButton("Load Volume");
                     m_lineEdit = new QLineEdit();

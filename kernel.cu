@@ -152,15 +152,15 @@ float4 shadeVoxel(unsigned char sharedMemory[],
                   float3 voxelPos,
                   float3 voxelDim,
                   float3 slicePoint,
-                  float3 sliceNormal) {
+                  float3 sliceNormal,
+                  bool phongShading) {
 
     uchar sampled
              = getVoxel( sharedMemory, cacheIdx, cacheDim, offset );
 
     float4 value = transferFunction( sampled );
 
-#ifdef DEBUG_PHONG
-    if ( value.w > 1e-6 ) {
+    if ( phongShading && value.w > 1e-6 ) {
         float l, r, t, b, f, a;
 
         f = ucharToFloat( getVoxel(sharedMemory, cacheIdx, cacheDim, offset - 1) );
@@ -195,7 +195,6 @@ float4 shadeVoxel(unsigned char sharedMemory[],
             value.x = clamp( value.x + (.01f - dist ) * 100.f, 0.f, 1.f );
         }
     }
-#endif
 
     return value;
 }
@@ -208,6 +207,7 @@ void mainLoop(uchar cache[],
               dim3 imageDim,
               camera_params camera,
               slice_params slice,
+              shading_params shading,
               float3 origin,
               float3 direction,
               float upper,
@@ -235,7 +235,7 @@ void mainLoop(uchar cache[],
                         STEP_SIZE * 2.f
                         ),
                    voxelPos = origin + direction * voxelDist;
-            float4 shaded = shadeVoxel<_sliceType>( cache, cacheIdx, cacheDim, i, voxelPos, voxelDim, slicePoint, sliceNormal );
+            float4 shaded = shadeVoxel<_sliceType>( cache, cacheIdx, cacheDim, i, voxelPos, voxelDim, slicePoint, sliceNormal, shading.phongShading );
 
             if (shaded.w > 1e-6) {
                 result = blend( shaded, result );
@@ -256,7 +256,8 @@ void kernel(void *buffer,
             int width,
             int height,
             struct camera_params camera,
-            struct slice_params   slice)
+            struct slice_params   slice,
+            struct shading_params shading)
 {
     extern __shared__ unsigned char sharedMemory[];
     uchar4 *pixels = (uchar4*) buffer;
@@ -324,7 +325,7 @@ void kernel(void *buffer,
          imageDim(width, height);
 
     float4 result;
-    mainLoop<_sliceType>(sharedMemory, cacheIdx, cacheDim, imageDim, camera, slice, pos, ray, upper, result);
+    mainLoop<_sliceType>(sharedMemory, cacheIdx, cacheDim, imageDim, camera, slice, shading, pos, ray, upper, result);
 
     if (!isBorder) {
         result.x = clamp(result.x, 0.f, 1.f);
@@ -336,8 +337,8 @@ void kernel(void *buffer,
     }
 }
 
-template __global__ void kernel< SLICE_NONE  >( void *buffer, int width, int height, struct camera_params camera, struct slice_params slice);
-template __global__ void kernel< SLICE_PLANE >( void *buffer, int width, int height, struct camera_params camera, struct slice_params slice);
+template __global__ void kernel< SLICE_NONE  >( void *buffer, int width, int height, struct camera_params camera, struct slice_params slice, struct shading_params shading);
+template __global__ void kernel< SLICE_PLANE >( void *buffer, int width, int height, struct camera_params camera, struct slice_params slice, struct shading_params shading);
 
 
 void initCuda() {
@@ -395,12 +396,12 @@ void runCuda(int width,
     switch( slice.type ) {
 
     case SLICE_NONE:
-        kernel< SLICE_NONE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice );
+        kernel< SLICE_NONE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
 
         break;
 
     case SLICE_PLANE:
-        kernel< SLICE_PLANE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice );
+        kernel< SLICE_PLANE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
 
         break;
     }

@@ -87,6 +87,7 @@ private:
     QPushButton* m_loadButton;
     QLineEdit* m_lineEdit;
     QComboBox* m_examples;
+    QCheckBox* m_phongShading;
 
 //    QMap*    m_source_table;
 

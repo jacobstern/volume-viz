@@ -74,6 +74,9 @@ public:
     void loadVolume(const char* path);
 //! [0]
 
+public slots:
+    void setPhongShading(bool);
+
 //! [2]
 protected:
     void initializeGL();
@@ -112,7 +115,7 @@ private:
     int resolutionScale;
 
     int transferPreset;
-    bool doPhong;
+    bool  phongShading;
 
     bool filterOutput;
 

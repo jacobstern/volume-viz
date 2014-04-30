@@ -93,7 +93,7 @@ static inline float nrm( float glCoord )
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
       font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f), resolutionScale(4),
-      transferPreset(TRANSFER_PRESET_DEFAULT), doPhong(false), filterOutput(true)
+      transferPreset(TRANSFER_PRESET_DEFAULT), phongShading(false), filterOutput(true)
 {
     logo = 0;
 
@@ -117,6 +117,16 @@ GLWidget::GLWidget(QWidget *parent)
     renderingDirty = true;
 }
 //! [0]
+
+void GLWidget::setPhongShading(bool shading)
+{
+    if (shading != phongShading) {
+        phongShading  = shading;
+        renderingDirty = true;
+
+        update();
+    }
+}
 
 //! [1]
 GLWidget::~GLWidget()
@@ -234,7 +244,7 @@ void GLWidget::paintGL()
     struct shading_params shadingParams;
 
     shadingParams.transferPreset = transferPreset;
-    shadingParams.phongShading   = doPhong;
+    shadingParams.phongShading   = phongShading;
 
     glBindBuffer( GL_PIXEL_UNPACK_BUFFER, resultBuffer);
 
@@ -602,7 +612,6 @@ void GLWidget::loadVolume(const char* path)
 
     if (QString(path).endsWith("engine.t3d")) {
         transferPreset = TRANSFER_PRESET_ENGINE;
-        doPhong = true;
     }
 
     size_t size;
