@@ -371,35 +371,42 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
     int dx = event->x() - lastPos.x();
-        int dy = event->y() - lastPos.y();
+    int dy = event->y() - lastPos.y();
 
-        if (event->buttons() & Qt::RightButton) {
-            // Stolen from CS224 Chameleon
-            QVector3D position = camera->getPosition();
+    if (event->buttons() & Qt::RightButton) {
+        // Stolen from CS224 Chameleon
+        QVector3D position = camera->getPosition();
 
-            float r = position.length(),
-                  theta = acos( double(position.y() / r) ) - dy / 200.f,
-                  phi = atan2( position.z(), position.x() ) + dx / 200.f;
+        float r = position.length(),
+              theta = acos( double(position.y() / r) ) - dy / 200.f,
+              phi = atan2( position.z(), position.x() ) + dx / 200.f;
 
-            if (theta < 0.1f)
-                theta = 0.1f;
+        if (theta < 0.1f)
+            theta = 0.1f;
 
-            if (theta > M_PI - 0.1f)
-                theta = M_PI - 0.1f;
+        if (theta > M_PI - 0.1f)
+            theta = M_PI - 0.1f;
 
-            camera->setPosition( QVector3D( r * sin(theta) * cos(phi), r * cos(theta), r * sin(theta) * sin(phi) ) );
-            camera->lookAt( QVector3D(0.f, 0.f, 0.f) );
+        camera->setPosition( QVector3D( r * sin(theta) * cos(phi), r * cos(theta), r * sin(theta) * sin(phi) ) );
+        camera->lookAt( QVector3D(0.f, 0.f, 0.f) );
 
-            renderingDirty = true;
-        }
-        lastPos = event->pos();
+        renderingDirty = true;
+    } else if (event->buttons() & Qt::MiddleButton && hasCuttingPlane) {
+        cutPoint = cutPoint + cutRight * dx / ( width()  );
+        cutPoint = cutPoint + cutUp    * dy / ( height() );
 
-        if (didStartDragging) {
-            isDragging = true;
-            dragEnd = QVector2D( lastPos.x() / (float) width(), lastPos.y() / (float) height() );
-        }
+        renderingDirty = true;
+    }
 
-        update();
+
+    lastPos = event->pos();
+
+    if (didStartDragging) {
+        isDragging = true;
+        dragEnd = QVector2D( lastPos.x() / (float) width(), lastPos.y() / (float) height() );
+    }
+
+    update();
 }
 //! [10]
 
@@ -415,7 +422,9 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         QVector4D front = inverse * QVector4D( glc( window.x() ), -glc( window.y() ), -1.f, 1.f ),
                   back  = inverse * QVector4D( glc( window.x() ), -glc( window.y() ),  1.f, 1.f ),
                   side  = inverse * QVector4D( glc( dragStart.x() ), -glc( dragStart.y() ),
-                                             -1.f, 1.f );
+                                             -1.f, 1.f ),
+                  up    = inverse * QVector4D( 0.f, -1.f, 0.f, 0.f ),
+                  right = inverse * QVector4D( 1.f,  0.f, 0.f, 0.f );
 
         front /= front.w();
         back  /= back.w();
@@ -440,10 +449,13 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
 
         cutPoint = p;
         cutNormal = n;
-    }
 
-    isDragging = false;
-    didStartDragging = false;
+        cutUp    = QVector3D( up.x(), up.y(), up.z() );
+        cutRight = QVector3D( right.x(), right.y(), right.z() );
+
+        isDragging = false;
+        didStartDragging = false;
+    }
 
     update();
 }

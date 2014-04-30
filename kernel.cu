@@ -183,7 +183,9 @@ float4 shadeVoxel(unsigned char sharedMemory[],
 
     if (_sliceType == SLICE_PLANE) {
         float dist = distanceToPlane( slicePoint, sliceNormal, voxelPos );
-        value.x += clamp( (.01f - dist ) * 100.f, 0.f, 1.f );
+        if (dist < .01f) {
+            value.x = clamp( value.x + (.01f - dist ) * 100.f, 0.f, 1.f );
+        }
     }
 #endif
 

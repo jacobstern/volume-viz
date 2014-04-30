@@ -93,7 +93,7 @@ private:
     QVector2D dragStart, dragEnd;
 
     bool hasCuttingPlane;
-    QVector3D cutPoint, cutNormal;
+    QVector3D cutPoint, cutNormal, cutUp, cutRight;
 
     void drawProxyGeometry();
     void drawTextureQuad();
