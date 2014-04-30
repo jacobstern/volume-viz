@@ -11,19 +11,15 @@
 
 #define SLICE_EDGELENGTH 256
 
-#define N_DEFAULT_TEXTURES 5
+#define N_DEFAULT_TEXTURES 3
 static char *g_texture_names[N_DEFAULT_TEXTURES] = {"head",
                                                   "engine",
-                                                    "foo",
-                                                    "bar",
-                                                    "baz"};
+                                                    "monkey"};
 static char *g_texture_paths[N_DEFAULT_TEXTURES] = {"/home/rmartens/shared/cs224textures/head.t3d",
                                                  "/home/rmartens/shared/cs224textures/engine.t3d",
-                                                    "foo/path",
-                                                    "bar/path",
-                                                    "baz/path"};
+                                                    "/home/rmartens/shared/cs224textures/monkey.t3d"};
 
-static char *g_savepath_default = "$ Save slice as:";
+static char *g_savepath_default = "Save slice as:";
 
 static char* g_slice_slider_captions[N_SLICE_SLIDERS] = {"dx", "dy", "dz", "theta", "phi", "psi"};
 
