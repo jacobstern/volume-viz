@@ -49,7 +49,7 @@
 #include "slicewidget.h"
 #include "qtlogo.h"
 #include "kernel.cuh"
-
+#include "slicekernel.cuh"
 #include "params.h"
 
 using std::cout;
@@ -634,7 +634,30 @@ void SliceWidget::drawSomething()
     CHECK_GL_ERROR_DEBUG();
 }
 
+void SliceWidget::renderSlice(SliceParameters sliceParameters,
+                              BufferParameters bufferParameters,
+                              canonicalOrientation orientation)
+{
+    if(bufferParameters.height*bufferParameters.width != m_sizeY*m_sizeX){
+        cout << "allocating new slice buffer" << endl;
+        delete[] m_sliceBuffer;
+        m_sliceBuffer = new float[bufferParameters.height*bufferParameters.width];
+        m_sizeY = bufferParameters.height;
+        m_sizeX = bufferParameters.width;
+        cout << "new slice buffer allocated" << endl;
+    }
 
+    invoke_slice_kernel(m_sliceBuffer, bufferParameters, sliceParameters, orientation);
+
+    cout << "TODO: Invoke kernel" << endl;
+}
+
+float* SliceWidget::getSlice(size_t& height, size_t& width)
+{
+    height = m_sizeY;
+    width = m_sizeX;
+    return m_sliceBuffer;
+}
 
 
 

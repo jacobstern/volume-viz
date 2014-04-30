@@ -53,6 +53,7 @@
 
 #include "camera.h"
 #include "volumegenerator.h"
+#include "params.h"
 
 
 
@@ -72,6 +73,13 @@ public:
 
     void drawSomething();
 
+    void renderSlice(SliceParameters sliceParameters,
+                     BufferParameters bufferParameters,
+                     canonicalOrientation orientation);
+
+    float* getSlice(size_t& height, size_t& width);
+
+
     const static int N_FRAMEBUFFERS = 2;
 //! [0]
 
@@ -84,6 +92,9 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
     void wheelEvent(QWheelEvent *event);
+
+
+
 //! [2]
 
 //! [3]
@@ -122,8 +133,9 @@ private:
 
     cudaArray* m_volumeArray;
 
-
-
+    float* m_sliceBuffer = NULL;
+    size_t m_sizeX = 0;
+    size_t m_sizeY = 0;
 
 };
 //! [3]

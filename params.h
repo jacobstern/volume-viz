@@ -24,5 +24,25 @@ static char* g_slice_slider_captions[N_SLICE_SLIDERS] = {"dx", "dy", "dz", "thet
 typedef enum{ HORIZONTAL, SAGITTAL, CORONAL, N_CANONICAL_ORIENTATIONS} canonicalOrientation;
 static char* g_canonical_orientation_captions[N_CANONICAL_ORIENTATIONS] = {"horizontal", "sagittal", "coronal"};
 
+struct SliceParameters {
+
+    SliceParameters(float x, float y, float z) : dx(x), dy(y), dz(z) {}
+    SliceParameters(float x, float y, float z, float t, float ph, float ps) : dx(x), dy(y), dz(z), theta(t), phi(ph), psi(ps) {}
+
+    float dx;
+    float dy;
+    float dz;
+    float theta;
+    float phi;
+    float psi;
+};
+
+struct BufferParameters {
+    BufferParameters(size_t height_, size_t width_) : height(height_), width(width_) {}
+
+    size_t height;
+    size_t width;
+};
+
 
 #endif // PARAMS_H

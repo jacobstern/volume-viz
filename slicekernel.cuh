@@ -1,22 +1,31 @@
 #include <cuda.h>
 #include <cuda_gl_interop.h>
+#include "params.h"
 
-struct SliceParameters {
+#include <cuda.h>
+#include <cuda_gl_interop.h>
 
-    SliceParameters(float x, float y, float z) : dx(x), dy(y), dz(z) {}
-    SliceParameters(float x, float y, float z, float t, float ph, float ps) : dx(x), dy(y), dz(z), theta(t), phi(ph), psi(ps) {}
+#include <helper_cuda.h>
+#include <helper_cuda_gl.h>
+#include <helper_math.h>
 
-    float dx;
-    float dy;
-    float dz;
-    float theta;
-    float phi;
-    float psi;
-};
+#include <assert.h>
+#include <stdio.h>
 
-struct BufferParameters {
-    BufferParameters(size_t x_, size_t y_) : x(x_), y(y_) {}
+#include "kernel.cuh"
+#include "assert.h"
+#include "params.h"
 
-    size_t x;
-    size_t y;
-};
+#include <cuda.h>
+#include <cuda_gl_interop.h>
+
+#include <iostream>
+
+void invoke_slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c);
+
+// NOTE: Perhaps pass in matrix format...
+__global__
+void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c);
+
+
+

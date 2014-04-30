@@ -162,12 +162,43 @@ void Window::loadButtonClicked()
 
 void Window::renderSliceButtonClicked()
 {
-    cout << "Ready to render slice (not yet implemented)" << endl;
+    // TODO: get specifications
+    float dx = 0.0;
+    float dy = 0.0;
+    float dz = 0.0;
+
+    float theta = 0.0;
+    float phi = 0.0;
+    float psi = 0.0;
+
+    int height = 256;
+    int width = 256;
+
+    SliceParameters sliceParameters(dx, dy, dz, theta, phi, psi);
+    BufferParameters bufferParameters(height, width);
+    canonicalOrientation orientation = SAGITTAL;
+
+    cout << "Window: Rendering slice" << endl;
+    m_sliceWidget->renderSlice(sliceParameters, bufferParameters, orientation);
+    cout << "Window: Slice rendered" << endl;
 }
 
 void Window::printSliceButtonClicked()
 {
     cout << "Ready to print slice (not yet doing anything)" << endl;
+
+    size_t height;
+    size_t width;
+
+    float* data = m_sliceWidget->getSlice(height, width);
+
+    for(int j=0; j<height; j++){
+        for(int i=0; i<width; i++){
+            int offset = j*height+i;
+            cout << data[offset] << " ";
+        }
+        cout << endl;
+    }
 }
 
 
