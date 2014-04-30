@@ -55,84 +55,24 @@
 using std::cout;
 using std::endl;
 
-#ifndef __APPLE__
-extern "C" {
-    GLAPI void APIENTRY glBindBuffer (GLenum target, GLuint buffer);
-    GLAPI void APIENTRY glGenBuffers (GLsizei n, GLuint *buffers);
-    GLAPI void APIENTRY glBufferData (GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage);
-
-    GLAPI void APIENTRY glUseProgram (GLuint program);
-
-    // extrapolation
-    GLAPI void APIENTRY glDeleteBuffers (GLenum target, GLuint *buffers);
-}
-#endif
-
-#define CHECK_GL_ERROR_DEBUG() \
-    do { \
-        GLenum __error = glGetError(); \
-        if(__error) { \
-            printf("OpenGL error 0x%04X in %s %s %d\n", __error, __FILE__, __FUNCTION__, __LINE__); \
-        } \
-    } while (false)
-
-#define FRONT_FACE_BUFFER   0
-#define BACK_FACE_BUFFER    1
-
-static inline float glc( float normalized )
-{
-    return normalized * 2.f - 1.f;
-}
 
 SliceWidget::SliceWidget(QWidget *parent)
-//    : QWidget(QGLFormat(QGL::SampleBuffers), parent),
-//      font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f)
 {
+    int n = 300;
+    m_sliceImage = new QImage(n,n,QImage::Format_RGB32);
+    BGRA* bits = new BGRA[n*n];
+    for(int j=0; j<n; j++){
+        for(int i=0; i<n; i++){
+            int offset = j*n+i;
+            bits[offset] = BGRA(0.0, 0.0, 0.5, 1.0);
+        }
+    }
+    memcpy(m_sliceImage->bits(), bits, n*n*sizeof(BGRA));
+    delete[] bits;
 }
 
 SliceWidget::~SliceWidget()
 {
-}
-
-QSize SliceWidget::minimumSizeHint() const
-{
-    return QSize(50, 50);
-}
-
-
-QSize SliceWidget::sizeHint() const
-{
-    return QSize(800, 600);
-}
-
-
-void SliceWidget::initializeGL()
-{
-    glClearColor(0.0, 0.0, 0.0, 1.0);
-
-//    glEnable(GL_TEXTURE_2D);
-//    glEnable(GL_DEPTH_TEST);
-//    glEnable(GL_LINE_SMOOTH);
-
-//    glMatrixMode(GL_MODELVIEW);
-
-//    loadShaderProgram( firstPass, tr("firstpass") );
-//    loadShaderProgram( screen, tr("screen") );
-//    loadShaderProgram( ui, tr("ui") );
-
-//    initCuda();
-//    loadVolume();
-}
-
-
-void SliceWidget::paintGL()
-{
-
-}
-
-void SliceWidget::resizeGL(int width, int height)
-{
-
 }
 
 void SliceWidget::renderSlice(SliceParameters sliceParameters,
@@ -150,26 +90,34 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
 
     invoke_slice_kernel(m_sliceBuffer, bufferParameters, sliceParameters, orientation);
 
-    QImage img(bufferParameters.width, bufferParameters.height, QImage::Format_RGB32);
-
-    // TODO: Convert to rgb32
-    BGRA* bits = new BGRA[bufferParameters.width*bufferParameters.height];
-    for(int j=0; j<bufferParameters.height; j++){
-        for(int i=0; i<bufferParameters.width; i++){
-            int offset = j*bufferParameters.height+i;
-            unsigned int val =(unsigned int)( m_sliceBuffer[offset]*255 );
-            bits[offset] = BGRA(0.5, 0.5, 0.5, 1.0);
+    if(m_sliceImage){
+        cout << "Updating slice image" << endl;\
+        delete m_sliceImage;
+        m_sliceImage = new QImage(bufferParameters.width, bufferParameters.height, QImage::Format_RGB32);
+        BGRA* bits = new BGRA[bufferParameters.width*bufferParameters.height];
+        for(int j=0; j<bufferParameters.height; j++){
+            for(int i=0; i<bufferParameters.width; i++){
+                int offset = j*bufferParameters.height+i;
+                unsigned int val =(unsigned int)( m_sliceBuffer[offset]*255 );
+                bits[offset] = BGRA(0.5, 0.5, 0.5, 1.0);
+            }
         }
+        memcpy(m_sliceImage->bits(), bits, bufferParameters.width*bufferParameters.height*sizeof(BGRA));
+        delete[] bits;
+        cout << "Slice image updated" << endl;
     }
-    memcpy(img.bits(), bits, bufferParameters.width*bufferParameters.height*sizeof(BGRA));
-    delete[] bits;
-    QPainter painter(this);
-    cout << "drawing image" << endl;
-    painter.drawImage(QPoint(0,0), img);
-    cout << "image drawn" << endl;
+}
 
+void SliceWidget::paintEvent(QPaintEvent *)
+{
+//    cout << "Paint event!" << endl;
+    QPainter painter(this);
+//    cout << "drawing image" << endl;
+    painter.drawImage(QPoint(0,0), *m_sliceImage);
+//    cout << "image drawn" << endl;
     update();
 }
+
 
 float* SliceWidget::getSlice(size_t& height, size_t& width)
 {

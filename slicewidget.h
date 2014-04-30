@@ -56,11 +56,7 @@
 #include "params.h"
 
 
-
-class QtLogo;
-
-//! [0]
-class SliceWidget : public QGLWidget
+class SliceWidget : public QWidget
 {
     Q_OBJECT
 
@@ -68,8 +64,8 @@ public:
     SliceWidget(QWidget *parent = 0);
     ~SliceWidget();
 
-    QSize minimumSizeHint() const;
-    QSize sizeHint() const;
+//    QSize minimumSizeHint() const;
+//    QSize sizeHint() const;
 
     void renderSlice(SliceParameters sliceParameters,
                      BufferParameters bufferParameters,
@@ -77,17 +73,15 @@ public:
 
     float* getSlice(size_t& height, size_t& width);
 
-
 protected:
-    void initializeGL();
-    void paintGL();
-    void resizeGL(int width, int height);
-
+    virtual void paintEvent(QPaintEvent *);
 
 private:
     float* m_sliceBuffer = NULL;
     size_t m_sizeX = 0;
     size_t m_sizeY = 0;
+
+    QImage* m_sliceImage;
 
 };
 
