@@ -53,10 +53,6 @@
 using namespace std;
 
 
-
-
-
-
 //! [0]
 Window::Window()
 {
@@ -111,6 +107,12 @@ Window::Window()
                     }simpleSliderBox->addLayout(radioBox);
                     m_canonicalSliceSlider = new QSlider(Qt::Horizontal);
                     simpleSliderBox->addWidget(m_canonicalSliceSlider);
+                    m_sliceRenderButton = new QPushButton("Render Slice!");
+                    connect(m_sliceRenderButton, SIGNAL(clicked()), this, SLOT(renderSliceButtonClicked()));
+                    simpleSliderBox->addWidget(m_sliceRenderButton);
+                    m_slicePrintButton = new QPushButton("Print Slice!");
+                    connect(m_slicePrintButton, SIGNAL(clicked()), this, SLOT(printSliceButtonClicked()));
+                    simpleSliderBox->addWidget(m_slicePrintButton);
                 }controlBox->addLayout(simpleSliderBox);
 
 //                QVBoxLayout* sliceSliderBox = new QVBoxLayout();{
@@ -158,7 +160,15 @@ void Window::loadButtonClicked()
     glWidget->loadVolume(path);
 }
 
+void Window::renderSliceButtonClicked()
+{
+    cout << "Ready to render slice (not yet implemented)" << endl;
+}
 
+void Window::printSliceButtonClicked()
+{
+    cout << "Ready to print slice (not yet doing anything)" << endl;
+}
 
 
 

@@ -68,6 +68,8 @@ public:
 public slots:
     void textureSelectionChanged(int);
     void loadButtonClicked();
+    void renderSliceButtonClicked();
+    void printSliceButtonClicked();
 
 protected:
     void keyPressEvent(QKeyEvent *event);
@@ -93,6 +95,9 @@ private:
     QRadioButton** m_canonicalOrientationButtons;
 
     QSlider* m_canonicalSliceSlider;
+
+    QPushButton* m_sliceRenderButton;
+    QPushButton* m_slicePrintButton;
 
 
 };
