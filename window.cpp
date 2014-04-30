@@ -46,6 +46,7 @@
 #include "glwidget.h"
 #include "window.h"
 #include "slicewidget.h"
+#include "params.h"
 
 #include <iostream>
 

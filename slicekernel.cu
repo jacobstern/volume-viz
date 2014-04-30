@@ -1,9 +1,11 @@
-#include "slice-kernel.cuh"
-#include "window.h"
-#include "kernel.h"
+#include "slicekernel.cuh"
+#include "params.h"
+#include "kernel.cuh"
+
+texture<unsigned char, cudaTextureType3D, cudaReadModeNormalizedFloat> texVolume;
 
 __global__
-void slice_kernel(void *buf, BufferParameters bp, SliceParameters sp, canonicalOrientation c)
+void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c)
 {
 
     for(int j=0; j<bp.y; j++){
@@ -25,9 +27,9 @@ void slice_kernel(void *buf, BufferParameters bp, SliceParameters sp, canonicalO
             pos.y += sp.dy;
             pos.z += sp.dz;
 
-            float sample = tex3(pos.x, pos.y, pos.z);
+            float sample = tex3D(texVolume, pos.x, pos.y, pos.z);
 
-            buf[offset] = sample;
+            buffer[offset] = sample;
 
 
 
