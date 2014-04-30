@@ -71,8 +71,6 @@ public:
     QSize minimumSizeHint() const;
     QSize sizeHint() const;
 
-    void drawSomething();
-
     void renderSlice(SliceParameters sliceParameters,
                      BufferParameters bufferParameters,
                      canonicalOrientation orientation);
@@ -80,64 +78,18 @@ public:
     float* getSlice(size_t& height, size_t& width);
 
 
-    const static int N_FRAMEBUFFERS = 2;
-//! [0]
-
-//! [2]
 protected:
     void initializeGL();
     void paintGL();
     void resizeGL(int width, int height);
-    void mousePressEvent(QMouseEvent *event);
-    void mouseReleaseEvent(QMouseEvent *event);
-    void mouseMoveEvent(QMouseEvent *event);
-    void wheelEvent(QWheelEvent *event);
 
 
-
-//! [2]
-
-//! [3]
 private:
-    Camera *camera;
-
-    bool didStartDragging, isDragging;
-    QVector2D dragStart, dragEnd;
-
-    bool hasCuttingPlane;
-    QVector3D cutPoint, cutNormal;
-
-    void drawProxyGeometry();
-    void drawTextureQuad();
-    void showDragUI();
-
-    void loadShaderProgram(QGLShaderProgram &program, QString name);
-
-    void loadVolume();
-
-    QtLogo *logo;
-    float scaleFactor;
-    QPoint lastPos;
-    QColor qtGreen;
-    QColor qtPurple;
-    GLuint resultBuffer, resultTexture;
-    QGLShaderProgram firstPass, screen, ui;
-    QGLFramebufferObject *framebuffers[SliceWidget::N_FRAMEBUFFERS];
-
-    QFont font; // font for rendering text
-
-    QMatrix4x4 perspective;
-    float fovX, fovY;
-
-    VolumeGenerator* m_volgen;
-
-    cudaArray* m_volumeArray;
-
     float* m_sliceBuffer = NULL;
     size_t m_sizeX = 0;
     size_t m_sizeY = 0;
 
 };
-//! [3]
+
 
 #endif

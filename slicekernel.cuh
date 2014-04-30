@@ -2,11 +2,13 @@
 #include <cuda_gl_interop.h>
 #include "params.h"
 
-#include <cuda.h>
-#include <cuda_gl_interop.h>
 
-#include <helper_cuda.h>
-#include <helper_cuda_gl.h>
+//#include <helper_cuda.h>
+
+// DANGER: HACK!
+#define checkCudaErrors(A) A
+
+//#include <helper_cuda_gl.h>
 #include <helper_math.h>
 
 #include <assert.h>
@@ -16,8 +18,7 @@
 #include "assert.h"
 #include "params.h"
 
-#include <cuda.h>
-#include <cuda_gl_interop.h>
+
 
 #include <iostream>
 
