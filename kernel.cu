@@ -23,11 +23,14 @@ using std::endl;
 // TODO: Don't hardcode this
 #define STEP_SIZE 0.00390625f // 1/256
 
-#define CACHE_DEPTH             64
-#define CACHE_DEPTH_MINUS_TWOF  62.f
+#define CACHE_DEPTH             32
+#define CACHE_DEPTH_MINUS_TWOF  30.f
 
 #define DIRECT_FACTOR           0.3f
 #define ONE_MINUS_DIRECT_FACTOR 0.7f
+
+#define BLOCK_WIDTH             16
+#define BLOCK_HEIGHT            16
 
 #define SQRT_3 1.73205081f
 
@@ -91,7 +94,10 @@ float blockMin(float shared[], int idx, int upper, float poll)
 
 __device__
 unsigned char sample(float3 pos) {
-    return 0xff * tex3D(texVolume, pos.x, pos.y, pos.z);
+    if ( boundsCheck(pos) )
+        return 0xff * tex3D(texVolume, pos.x, pos.y, pos.z);
+    else
+        return 0x00;
 }
 
 __device__
@@ -124,8 +130,10 @@ void rayMarch(unsigned char cache[],
            step = direction * STEP_SIZE;
 
     for (int i = 0; i < CACHE_DEPTH; ++i) {
+        uchar sampled = sample( pos );
+
         cache[ i * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
-                = sample( pos );
+                = sampled;
 
         pos += step;
     }
@@ -374,15 +382,13 @@ void runCuda(int width,
     checkCudaErrors( cudaGraphicsResourceGetMappedPointer(&devBuffer, &bufferSize, pixelBuffer) );
 
     // For convenience, greedily chunk the screen into 14x14 squares
-    dim3 blockSize(14, 14),
-         blockDims(width / blockSize.x, height / blockSize.y);
-    if (width % blockSize.x)
+    dim3 slabSize(BLOCK_WIDTH - 2, BLOCK_HEIGHT - 2),
+         blockDims(width / slabSize.x, height / slabSize.y),
+         blockSize(BLOCK_WIDTH, BLOCK_HEIGHT);
+    if (width % slabSize.x)
         ++blockDims.x;
-    if (height % blockSize.y)
+    if (height % slabSize.y)
         ++blockDims.y;
-
-    blockSize.x += 2;
-    blockSize.y += 2;
 
     size_t sharedMemSize = ( CACHE_DEPTH ) * ( blockSize.x ) * ( blockSize.y ) * sizeof( uchar );
 

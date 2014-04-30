@@ -401,7 +401,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
     lastPos = event->pos();
 
-    if (didStartDragging) {
+    if ( (event->buttons() & Qt::LeftButton) && didStartDragging) {
         isDragging = true;
         dragEnd = QVector2D( lastPos.x() / (float) width(), lastPos.y() / (float) height() );
     }
@@ -615,6 +615,7 @@ void GLWidget::loadVolume(const char* path)
 
     delete m_volgen;
 
+    renderingDirty = true;
 }
 
 
