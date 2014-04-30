@@ -126,7 +126,7 @@ void SliceWidget::paintEvent(QPaintEvent *)
     QPainter painter(this);
 //    cout << "drawing image" << endl;
     if(m_sliceImage){
-        painter.drawImage(QPoint(0,0), *m_sliceImage);
+        painter.drawImage(QPoint(0,0), m_sliceImage->mirrored(true, true));
     }
 //    cout << "image drawn" << endl;
     update();
