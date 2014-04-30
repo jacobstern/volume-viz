@@ -111,6 +111,8 @@ private:
 
     QTabWidget* m_sliceTab;
 
+    QComboBox* m_fileFormats;
+
 
 };
 //! [0]

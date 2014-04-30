@@ -77,8 +77,9 @@ Window::Window()
             // LOWER HALF OF LEFT COLUMN
             QVBoxLayout *controlBox = new QVBoxLayout();{
 
-                QHBoxLayout *loadBox = new QHBoxLayout();{
-                    loadBox->addWidget(new QLabel("Load"));
+                QVBoxLayout *loadBox = new QVBoxLayout();{
+                    loadBox->addWidget(new QLabel("Load Model:"));
+
                     m_loadButton = new QPushButton("Load Volume");
                     m_lineEdit = new QLineEdit();
                     m_lineEdit->setFocus();
@@ -89,26 +90,27 @@ Window::Window()
                         m_examples->addItem(g_texture_names[i]);
                     }
                     connect(m_examples, SIGNAL(activated(int)), this, SLOT(textureSelectionChanged(int)));
-                    loadBox->addWidget(m_lineEdit);
-                    loadBox->addWidget(m_examples);
-                    loadBox->addWidget(m_loadButton);
+
+                    QGridLayout* loadGrid = new QGridLayout();
+                    loadGrid->addWidget(m_lineEdit, 0, 0, 1,2);
+                    loadGrid->addWidget(m_examples, 1, 0);
+                    loadGrid->addWidget(m_loadButton, 1,1);
+                    loadBox->addLayout(loadGrid);
+
                     connect(m_loadButton, SIGNAL(clicked()), this, SLOT(loadButtonClicked()));
                 }
                 controlBox->addLayout(loadBox);
 
                 // SLICE CONTROLS
-                QHBoxLayout* sliceBox = new QHBoxLayout();{
+                QVBoxLayout* sliceBox = new QVBoxLayout();{
                     m_sliceTab = new QTabWidget();{
 
                         // just the label
-                        QLabel* sliceLabel = new QLabel("Slice");
+                        QLabel* sliceLabel = new QLabel("Slice Model");
                         sliceBox->addWidget(sliceLabel);
 
                         // canonical orientations slicer
                         QVBoxLayout* simpleSliderBox = new QVBoxLayout();{
-                                QLabel* simpleSliderLabel = new QLabel("Simple");
-                                simpleSliderBox->addWidget(simpleSliderLabel);
-
                                 m_canonicalOrientationBox = new QGroupBox();{
                                     QHBoxLayout* radioBox = new QHBoxLayout();{
                                         m_canonicalOrientationButtons = new QRadioButton*[N_CANONICAL_ORIENTATIONS];
@@ -154,20 +156,21 @@ Window::Window()
                 controlBox->addLayout(sliceBox);
 
                 // OPTION TO SAVE SLICE, UNIVERSAL TO ALL TOOLS
-                QHBoxLayout *saveBox = new QHBoxLayout();{
-                    saveBox->addWidget(new QLabel("Save"));
+                QVBoxLayout *saveBox = new QVBoxLayout();{
+                    saveBox->addWidget(new QLabel("Save Slice:"));
 
-//                    QLabel* savePathLabel = new QLabel(g_savepath_default);
-//                    saveBox->addWidget(savePathLabel);
-
+                    m_fileFormats = new QComboBox();
+                    m_sliceSaveButton = new QPushButton("Save slice");
+                    connect(m_sliceSaveButton, SIGNAL(clicked()), this, SLOT(saveSliceButtonClicked()));
                     m_sliceSavePath = new QLineEdit();
                     m_sliceSavePath->clear();
-                    saveBox->addWidget(m_sliceSavePath);
 
-                    m_sliceSaveButton = new QPushButton("Save slice");
-                    saveBox->addWidget(m_sliceSaveButton);
-                    connect(m_sliceSaveButton, SIGNAL(clicked()), this, SLOT(saveSliceButtonClicked()));
+                    QGridLayout* saveGrid = new QGridLayout();
+                    saveGrid->addWidget(m_sliceSavePath, 0, 0, 1, 2);
+                    saveGrid->addWidget(m_fileFormats, 1, 0);
+                    saveGrid->addWidget(m_sliceSaveButton, 1, 1);
 
+                    saveBox->addLayout(saveGrid);
                 }
                 controlBox->addLayout(saveBox);
 
