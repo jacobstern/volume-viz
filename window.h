@@ -68,9 +68,15 @@ public:
 public slots:
     void textureSelectionChanged(int);
     void loadButtonClicked();
-    void renderSliceButtonClicked();
-    void printSliceButtonClicked();
-    void canonicalSliceSliderChanged(int);
+
+    void renderSlice(int value=0);
+
+//    void renderSliceButtonClicked();
+//    void printSliceButtonClicked();
+
+    void saveSliceButtonClicked();
+
+//    void canonicalSliceSliderChanged(int);
 
 protected:
     void keyPressEvent(QKeyEvent *event);
@@ -97,10 +103,11 @@ private:
 
     QSlider* m_canonicalSliceSlider;
 
-    QPushButton* m_sliceRenderButton;
-    QPushButton* m_slicePrintButton;
+    QPushButton* m_sliceSaveButton;
 
     QGroupBox* m_canonicalOrientationBox;
+
+    QLineEdit* m_sliceSavePath;
 
 
 };

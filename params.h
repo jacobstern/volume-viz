@@ -23,6 +23,8 @@ static char *g_texture_paths[N_DEFAULT_TEXTURES] = {"/home/rmartens/shared/cs224
                                                     "bar/path",
                                                     "baz/path"};
 
+static char *g_savepath_default = "$ Save slice as:";
+
 static char* g_slice_slider_captions[N_SLICE_SLIDERS] = {"dx", "dy", "dz", "theta", "phi", "psi"};
 
 typedef enum{ HORIZONTAL, SAGITTAL, CORONAL, N_CANONICAL_ORIENTATIONS} canonicalOrientation;

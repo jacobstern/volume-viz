@@ -71,6 +71,8 @@ public:
                      BufferParameters bufferParameters,
                      canonicalOrientation orientation);
 
+    void saveSliceAs(QString fileName);
+
     float* getSlice(size_t& height, size_t& width);
 
 protected:

@@ -140,7 +140,12 @@ float* SliceWidget::getSlice(size_t& height, size_t& width)
     return m_sliceBuffer;
 }
 
-
+void SliceWidget::saveSliceAs(QString fileName)
+{
+    if(m_sliceImage){
+        m_sliceImage->save(fileName);
+    }
+}
 
 
 

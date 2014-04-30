@@ -104,6 +104,7 @@ Window::Window()
                                 radioBox->addWidget(radioLabel);
                                 m_canonicalOrientationButtons[i] = new QRadioButton();
                                 radioBox->addWidget(m_canonicalOrientationButtons[i]);
+                                connect(m_canonicalOrientationButtons[i], SIGNAL(clicked(bool)), this, SLOT(renderSlice()));
                             }
                         }m_canonicalOrientationBox->setLayout(radioBox);
                         m_canonicalOrientationButtons[SAGITTAL]->setChecked(true);
@@ -111,13 +112,20 @@ Window::Window()
                     m_canonicalSliceSlider = new QSlider(Qt::Horizontal);
                     m_canonicalSliceSlider->setRange(0,SLICE_EDGELENGTH);
                     simpleSliderBox->addWidget(m_canonicalSliceSlider);
-                    connect(m_canonicalSliceSlider, SIGNAL(valueChanged(int)), this, SLOT(canonicalSliceSliderChanged(int)));
-                    m_sliceRenderButton = new QPushButton("Render Slice!");
-                    connect(m_sliceRenderButton, SIGNAL(clicked()), this, SLOT(renderSliceButtonClicked()));
-                    simpleSliderBox->addWidget(m_sliceRenderButton);
-                    m_slicePrintButton = new QPushButton("Print Slice!");
-                    connect(m_slicePrintButton, SIGNAL(clicked()), this, SLOT(printSliceButtonClicked()));
-                    simpleSliderBox->addWidget(m_slicePrintButton);
+                    connect(m_canonicalSliceSlider, SIGNAL(valueChanged(int)), this, SLOT(renderSlice()));
+
+
+                    QLabel* savePathLabel = new QLabel(g_savepath_default);
+                    simpleSliderBox->addWidget(savePathLabel);
+
+                    m_sliceSavePath = new QLineEdit();
+                    m_sliceSavePath->clear();
+                    simpleSliderBox->addWidget(m_sliceSavePath);
+
+                    m_sliceSaveButton = new QPushButton("Save slice");
+                    simpleSliderBox->addWidget(m_sliceSaveButton);
+                    connect(m_sliceSaveButton, SIGNAL(clicked()), this, SLOT(saveSliceButtonClicked()));
+
                 }controlBox->addLayout(simpleSliderBox);
 
 //                QVBoxLayout* sliceSliderBox = new QVBoxLayout();{
@@ -165,48 +173,13 @@ void Window::loadButtonClicked()
     glWidget->loadVolume(path);
 }
 
-void Window::renderSliceButtonClicked()
+void Window::saveSliceButtonClicked()
 {
-    // TODO: get specifications
-    float dx = 0.0;
-    float dy = 0.0;
-    float dz = 0.5;
-
-    float theta = 0.0;
-    float phi = 0.0;
-    float psi = 0.0;
-
-    int height = SLICE_EDGELENGTH;
-    int width = SLICE_EDGELENGTH;
-
-    SliceParameters sliceParameters(dx, dy, dz, theta, phi, psi);
-    BufferParameters bufferParameters(height, width);
-    canonicalOrientation orientation = SAGITTAL;
-
-    cout << "Window: Rendering slice" << endl;
-    m_sliceWidget->renderSlice(sliceParameters, bufferParameters, orientation);
-    cout << "Window: Slice rendered" << endl;
+    cout << "Trying to save image" << endl;
+    m_sliceWidget->saveSliceAs(m_sliceSavePath->text());
 }
 
-void Window::printSliceButtonClicked()
-{
-    cout << "Ready to print slice (not yet doing anything)" << endl;
-
-    size_t height;
-    size_t width;
-
-    float* data = m_sliceWidget->getSlice(height, width);
-
-    for(int j=0; j<height; j++){
-        for(int i=0; i<width; i++){
-            int offset = j*height+i;
-            cout << data[offset] << " ";
-        }
-        cout << endl;
-    }
-}
-
-void Window::canonicalSliceSliderChanged(int val)
+void Window::renderSlice(int value)
 {
     // TODO: get specifications
     float dx = 0.0;
@@ -215,6 +188,7 @@ void Window::canonicalSliceSliderChanged(int val)
 
     canonicalOrientation orientation;
 
+    float val = m_canonicalSliceSlider->value();
 
     for(int i=0; i<N_CANONICAL_ORIENTATIONS; i++){
         if(m_canonicalOrientationButtons[i]->isChecked()){
