@@ -70,6 +70,7 @@ public slots:
     void loadButtonClicked();
     void renderSliceButtonClicked();
     void printSliceButtonClicked();
+    void canonicalSliceSliderChanged(int);
 
 protected:
     void keyPressEvent(QKeyEvent *event);

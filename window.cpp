@@ -106,7 +106,9 @@ Window::Window()
                         }
                     }simpleSliderBox->addLayout(radioBox);
                     m_canonicalSliceSlider = new QSlider(Qt::Horizontal);
+                    m_canonicalSliceSlider->setRange(0,SLICE_EDGELENGTH);
                     simpleSliderBox->addWidget(m_canonicalSliceSlider);
+                    connect(m_canonicalSliceSlider, SIGNAL(valueChanged(int)), this, SLOT(canonicalSliceSliderChanged(int)));
                     m_sliceRenderButton = new QPushButton("Render Slice!");
                     connect(m_sliceRenderButton, SIGNAL(clicked()), this, SLOT(renderSliceButtonClicked()));
                     simpleSliderBox->addWidget(m_sliceRenderButton);
@@ -165,18 +167,18 @@ void Window::renderSliceButtonClicked()
     // TODO: get specifications
     float dx = 0.0;
     float dy = 0.0;
-    float dz = 0.0;
+    float dz = 0.5;
 
     float theta = 0.0;
     float phi = 0.0;
     float psi = 0.0;
 
-    int height = 256;
-    int width = 256;
+    int height = SLICE_EDGELENGTH;
+    int width = SLICE_EDGELENGTH;
 
     SliceParameters sliceParameters(dx, dy, dz, theta, phi, psi);
     BufferParameters bufferParameters(height, width);
-    canonicalOrientation orientation = SAGITTAL;
+    canonicalOrientation orientation = HORIZONTAL;
 
     cout << "Window: Rendering slice" << endl;
     m_sliceWidget->renderSlice(sliceParameters, bufferParameters, orientation);
@@ -201,7 +203,28 @@ void Window::printSliceButtonClicked()
     }
 }
 
+void Window::canonicalSliceSliderChanged(int val)
+{
+    // TODO: get specifications
+    float dx = 0.0;
+    float dy = 0.0;
+    float dz = ((float)val)/((float)SLICE_EDGELENGTH);
 
+    float theta = 0.0;
+    float phi = 0.0;
+    float psi = 0.0;
+
+    int height = SLICE_EDGELENGTH;
+    int width = SLICE_EDGELENGTH;
+
+    SliceParameters sliceParameters(dx, dy, dz, theta, phi, psi);
+    BufferParameters bufferParameters(height, width);
+    canonicalOrientation orientation = HORIZONTAL;
+
+    cout << "Window: Rendering slice" << endl;
+    m_sliceWidget->renderSlice(sliceParameters, bufferParameters, orientation);
+    cout << "Window: Slice rendered" << endl;
+}
 
 
 

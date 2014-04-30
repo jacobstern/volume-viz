@@ -55,16 +55,29 @@
 using std::cout;
 using std::endl;
 
+//std::ostream& operator<<(std::ostream& os, const SliceParameters p)
+//{
+//    os << "dx: " << p.dx << ", dy: " << p.dy << ", dz: " << p.dz
+//       << "theta: " << p.theta << ", phi: " << p.phi << ", psi: " << p.psi;
+//    return os;
+//}
+
+//std::ostream& operator<<(std::ostream& os, const BufferParameters p)
+//{
+//    os << "height: " << p.height << ", width: " << p.width;
+//    return os;
+//}
+
 
 SliceWidget::SliceWidget(QWidget *parent)
 {
-    int n = 300;
+    int n = SLICE_EDGELENGTH;
     m_sliceImage = new QImage(n,n,QImage::Format_RGB32);
     BGRA* bits = new BGRA[n*n];
     for(int j=0; j<n; j++){
         for(int i=0; i<n; i++){
             int offset = j*n+i;
-            bits[offset] = BGRA(0.0, 0.0, 0.5, 1.0);
+            bits[offset] = BGRA(0, 20, 50, 255);
         }
     }
     memcpy(m_sliceImage->bits(), bits, n*n*sizeof(BGRA));

@@ -1,11 +1,15 @@
 #ifndef PARAMS_H
 #define PARAMS_H
 
+#include <iostream>
+
 #define VOLUME_RESOLUTION 256
 
 #define DEFAULT_TEXTURE_PATH "/home/rmartens/shared/cs224textures/head.t3d"
 
 #define N_SLICE_SLIDERS 6
+
+#define SLICE_EDGELENGTH 256
 
 #define N_DEFAULT_TEXTURES 5
 static char *g_texture_names[N_DEFAULT_TEXTURES] = {"head",
@@ -43,6 +47,7 @@ struct BufferParameters {
     size_t height;
     size_t width;
 };
+
 
 
 #endif // PARAMS_H

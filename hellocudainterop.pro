@@ -27,13 +27,11 @@ OTHER_FILES += kernel.cu \
     screen.vert \
     ui.frag \
     ui.vert \
-    implicit.cu \
-    slicekernel.cuh \
-    slicekernel.cu
+    implicit.cu
 
 
-CUDA_SOURCES += kernel.cu \
-                slicekernel.cu
+CUDA_SOURCES += kernel.cu
+
 
 # paths to cuda sdk on filesystem
 CUDA_SDK = /Developer/NVIDIA/CUDA-5.5/
