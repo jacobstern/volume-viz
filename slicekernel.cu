@@ -26,7 +26,7 @@ void invoke_slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp,
     slice_kernel<<<grids,threads>>>( buffer_dev, bp, sp, c );
     cout << "kernel launched" << endl;
 
-    checkCudaErrors( cudaMemcpy( &buffer, &buffer_dev, bp.height*bp.width*sizeof(float), cudaMemcpyDeviceToHost) );
+    checkCudaErrors( cudaMemcpy( buffer, buffer_dev, bp.height*bp.width*sizeof(float), cudaMemcpyDeviceToHost) );
 
     checkCudaErrors( cudaFree( buffer_dev ) );
 
