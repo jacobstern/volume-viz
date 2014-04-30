@@ -113,11 +113,27 @@ float4 blend(float4 src, float4 dst) {
     return ret;
 }
 
+template<int _transferPreset>
 __device__
 float4 transferFunction(uchar sampled) {
     float asFloat = ucharToFloat( sampled );
 
-    return make_float4( asFloat, asFloat, asFloat, clamp(asFloat * asFloat * 2.f, 0.f, 1.f) );
+    switch(_transferPreset) {
+
+    case TRANSFER_PRESET_ENGINE:
+
+        return make_float4( asFloat, asFloat, asFloat, clamp(asFloat * asFloat * 2.f, 0.f, 1.f) );
+
+    case TRANSFER_PRESET_MRI:
+
+        float highlight   = 0.6,
+              adjust      = 1.f - 5.f * fabs(highlight - asFloat),
+              adjusted    = clamp( asFloat + adjust * .3, asFloat, 1.f );
+
+        return make_float4( asFloat, adjusted, asFloat, adjusted * adjusted * 0.05);
+
+    }
+
 }
 
 __device__
@@ -141,9 +157,7 @@ void rayMarch(unsigned char cache[],
     __syncthreads();
 }
 
-#define DEBUG_PHONG
-
-template<int _sliceType>
+template<int _sliceType, int _transferPreset>
 __device__
 float4 shadeVoxel(unsigned char sharedMemory[],
                   dim3 cacheIdx,
@@ -158,7 +172,7 @@ float4 shadeVoxel(unsigned char sharedMemory[],
     uchar sampled
              = getVoxel( sharedMemory, cacheIdx, cacheDim, offset );
 
-    float4 value = transferFunction( sampled );
+    float4 value = transferFunction<_transferPreset>( sampled );
 
     if ( phongShading && value.w > 1e-6 ) {
         float l, r, t, b, f, a;
@@ -199,7 +213,7 @@ float4 shadeVoxel(unsigned char sharedMemory[],
     return value;
 }
 
-template<int _sliceType>
+template<int _sliceType, int _transferPreset>
 __device__
 void mainLoop(uchar cache[],
               dim3 cacheIdx,
@@ -235,7 +249,7 @@ void mainLoop(uchar cache[],
                         STEP_SIZE * 2.f
                         ),
                    voxelPos = origin + direction * voxelDist;
-            float4 shaded = shadeVoxel<_sliceType>( cache, cacheIdx, cacheDim, i, voxelPos, voxelDim, slicePoint, sliceNormal, shading.phongShading );
+            float4 shaded = shadeVoxel<_sliceType, _transferPreset>( cache, cacheIdx, cacheDim, i, voxelPos, voxelDim, slicePoint, sliceNormal, shading.phongShading );
 
             if (shaded.w > 1e-6) {
                 result = blend( shaded, result );
@@ -250,7 +264,7 @@ void mainLoop(uchar cache[],
     }
 }
 
-template<int _sliceType>
+template<int _sliceType, int _transferPreset>
 __global__
 void kernel(void *buffer,
             int width,
@@ -325,7 +339,7 @@ void kernel(void *buffer,
          imageDim(width, height);
 
     float4 result;
-    mainLoop<_sliceType>(sharedMemory, cacheIdx, cacheDim, imageDim, camera, slice, shading, pos, ray, upper, result);
+    mainLoop<_sliceType, _transferPreset>(sharedMemory, cacheIdx, cacheDim, imageDim, camera, slice, shading, pos, ray, upper, result);
 
     if (!isBorder) {
         result.x = clamp(result.x, 0.f, 1.f);
@@ -336,10 +350,6 @@ void kernel(void *buffer,
         pixels[index] = make_uchar4(result.x * 0xff, result.y * 0xff, result.z * 0xff, result.w * 0xff);
     }
 }
-
-template __global__ void kernel< SLICE_NONE  >( void *buffer, int width, int height, struct camera_params camera, struct slice_params slice, struct shading_params shading);
-template __global__ void kernel< SLICE_PLANE >( void *buffer, int width, int height, struct camera_params camera, struct slice_params slice, struct shading_params shading);
-
 
 void initCuda() {
     cudaGLSetGLDevice( gpuGetMaxGflopsDeviceId() );
@@ -386,6 +396,7 @@ void runCuda(int width,
     dim3 slabSize(BLOCK_WIDTH - 2, BLOCK_HEIGHT - 2),
          blockDims(width / slabSize.x, height / slabSize.y),
          blockSize(BLOCK_WIDTH, BLOCK_HEIGHT);
+
     if (width % slabSize.x)
         ++blockDims.x;
     if (height % slabSize.y)
@@ -396,12 +407,42 @@ void runCuda(int width,
     switch( slice.type ) {
 
     case SLICE_NONE:
-        kernel< SLICE_NONE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
+
+        switch( shading.transferPreset ) {
+
+        case TRANSFER_PRESET_ENGINE:
+
+            kernel< SLICE_NONE, TRANSFER_PRESET_ENGINE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
+
+            break;
+
+        case TRANSFER_PRESET_MRI:
+
+            kernel< SLICE_NONE, TRANSFER_PRESET_MRI    ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
+
+            break;
+
+        }
 
         break;
 
     case SLICE_PLANE:
-        kernel< SLICE_PLANE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
+
+        switch( shading.transferPreset ) {
+
+        case TRANSFER_PRESET_ENGINE:
+
+            kernel< SLICE_PLANE, TRANSFER_PRESET_ENGINE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
+
+            break;
+
+        case TRANSFER_PRESET_MRI:
+
+            kernel< SLICE_PLANE, TRANSFER_PRESET_MRI    ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
+
+            break;
+
+        }
 
         break;
     }

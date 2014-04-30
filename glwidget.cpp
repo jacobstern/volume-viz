@@ -613,6 +613,12 @@ void GLWidget::loadVolume(const char* path)
     if (QString(path).endsWith("engine.t3d")) {
         transferPreset = TRANSFER_PRESET_ENGINE;
     }
+    else if (QString(path).endsWith("head.t3d")) {
+        transferPreset = TRANSFER_PRESET_MRI;
+    }
+    else {
+        transferPreset = TRANSFER_PRESET_DEFAULT;
+    }
 
     size_t size;
     byte* texels = m_volgen->getBytes(size);
@@ -624,7 +630,10 @@ void GLWidget::loadVolume(const char* path)
 
     delete m_volgen;
 
-    renderingDirty = true;
+    renderingDirty  = true;
+    hasCuttingPlane = false;
+
+    update();
 }
 
 

@@ -14,8 +14,9 @@ extern "C" {
 #define SLICE_NONE  -1
 #define SLICE_PLANE  0
 
-#define TRANSFER_PRESET_ENGINE  0
-#define TRANSFER_PRESET_DEFAULT 1
+#define TRANSFER_PRESET_DEFAULT -1
+#define TRANSFER_PRESET_ENGINE   0
+#define TRANSFER_PRESET_MRI      1
 
     struct slice_params {
         int   type;
