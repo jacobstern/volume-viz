@@ -90,22 +90,21 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
 
     invoke_slice_kernel(m_sliceBuffer, bufferParameters, sliceParameters, orientation);
 
-    if(m_sliceImage){
-        cout << "Updating slice image" << endl;\
-        delete m_sliceImage;
-        m_sliceImage = new QImage(bufferParameters.width, bufferParameters.height, QImage::Format_RGB32);
-        BGRA* bits = new BGRA[bufferParameters.width*bufferParameters.height];
-        for(int j=0; j<bufferParameters.height; j++){
-            for(int i=0; i<bufferParameters.width; i++){
-                int offset = j*bufferParameters.height+i;
-                unsigned int val =(unsigned int)( m_sliceBuffer[offset]*255 );
-                bits[offset] = BGRA(0.5, 0.5, 0.5, 1.0);
-            }
+    cout << "Updating slice image" << endl;\
+    delete m_sliceImage;
+    m_sliceImage = new QImage(bufferParameters.width, bufferParameters.height, QImage::Format_RGB32);
+    BGRA* bits = new BGRA[bufferParameters.width*bufferParameters.height];
+    for(int j=0; j<bufferParameters.height; j++){
+        for(int i=0; i<bufferParameters.width; i++){
+            int offset = j*bufferParameters.height+i;
+            unsigned int val =(unsigned int)( m_sliceBuffer[offset]*255 );
+            bits[offset] = BGRA(0, 100, 0, 255);
         }
-        memcpy(m_sliceImage->bits(), bits, bufferParameters.width*bufferParameters.height*sizeof(BGRA));
-        delete[] bits;
-        cout << "Slice image updated" << endl;
     }
+    memcpy(m_sliceImage->bits(), bits, bufferParameters.width*bufferParameters.height*sizeof(BGRA));
+    delete[] bits;
+    cout << "Slice image updated" << endl;
+
 }
 
 void SliceWidget::paintEvent(QPaintEvent *)
@@ -113,7 +112,9 @@ void SliceWidget::paintEvent(QPaintEvent *)
 //    cout << "Paint event!" << endl;
     QPainter painter(this);
 //    cout << "drawing image" << endl;
-    painter.drawImage(QPoint(0,0), *m_sliceImage);
+    if(m_sliceImage){
+        painter.drawImage(QPoint(0,0), *m_sliceImage);
+    }
 //    cout << "image drawn" << endl;
     update();
 }
