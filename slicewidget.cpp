@@ -142,12 +142,12 @@ void SliceWidget::saveSliceAs(QString fileName)
 
 Matrix4x4 SliceWidget::getTransformationMatrix(SliceParameters sliceParameters)
 {
-    assert(sliceParameters.theta >= 0);
-    assert(sliceParameters.theta < 6.3f); // ballpark estimate of 2 pi; might have rounding error, but this bound is tight enough
-    assert(sliceParameters.phi >= 0);
-    assert(sliceParameters.phi < 6.3f);
-    assert(sliceParameters.psi >= 0);
-    assert(sliceParameters.psi < 6.3f);
+    assert(sliceParameters.theta >= -3.2f);
+    assert(sliceParameters.theta < 3.2f); // ballpark estimate of 2 pi; might have rounding error, but this bound is tight enough
+    assert(sliceParameters.phi >= -3.2f);
+    assert(sliceParameters.phi < 3.2f);
+    assert(sliceParameters.psi >= -3.2f);
+    assert(sliceParameters.psi < 3.2f);
 
     Matrix4x4 rotX = getRotXMat(sliceParameters.theta);
     Matrix4x4 rotY = getRotYMat(sliceParameters.phi);

@@ -5,7 +5,8 @@ HEADERS       = glwidget.h \
     volumegenerator.h \
     params.h \
     slicewidget.h \
-    cs123math/CS123Algebra.h
+    cs123math/CS123Algebra.h \
+    CS123Common.h
 SOURCES       = glwidget.cpp \
                 main.cpp \
                 window.cpp \

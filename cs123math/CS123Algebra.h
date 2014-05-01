@@ -13,7 +13,7 @@
 #include <math.h>
 #include <cstring>
 
-typedef double REAL;
+typedef float REAL;
 
 #define CS123_VECTOR_NO_ELEMENTS    (N)
 #define CS123_VECTOR_SIZE           (sizeof(T) * CS123_VECTOR_NO_ELEMENTS)

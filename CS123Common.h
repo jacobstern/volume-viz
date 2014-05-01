@@ -18,7 +18,7 @@
 // from http://en.wikipedia.org/wiki/Assertion_(computing)
 #define COMPILE_TIME_ASSERT(pred) switch(0){case 0:case pred:;}
 
-typedef double REAL;
+typedef float REAL;
 
 //! A structure for a color.  Each channel is 8 bits [0-255].
 struct BGRA
