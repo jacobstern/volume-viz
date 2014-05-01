@@ -527,11 +527,6 @@ void invoke_advanced_slice_kernel(float *buffer, BufferParameters bp, Matrix4x4 
     float* buffer_dev;
     REAL* trans_dev;
 
-//    float data[16];
-//    for(int i=0; i<16; i++){
-//        data[i] = trans.data[i];
-//    }
-
     checkCudaErrors( cudaMalloc( &buffer_dev, bp.height*bp.width*sizeof(float)) );
     checkCudaErrors( cudaMalloc( &trans_dev, 16*sizeof(REAL) ) );
     checkCudaErrors( cudaMemcpy( trans_dev, trans.data, 16*sizeof(REAL), cudaMemcpyHostToDevice) );
@@ -621,9 +616,7 @@ void advanced_slice_kernel(float *buffer, BufferParameters bp, REAL* trans)
             sample = 1.0;
         }else{
 
-//            sample = tex3D(texVolume, pos.x, pos.y, pos.z);
-
-            sample = pos.x;
+            sample = tex3D(texVolume, pos.x, pos.y, pos.z);
         }
 
         buffer[offset] = sample;
