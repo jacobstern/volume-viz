@@ -21,12 +21,12 @@
 #define LEFT_COLUMN_HEIGHT 600
 
 
-static char *g_texture_names[N_DEFAULT_TEXTURES] = {"head",
+static char *g_texture_names[N_DEFAULT_TEXTURES] = {"MRI head",
                                                   "engine",
-                                                    "monkey"};
+                                                    "CT head"};
 static char *g_texture_paths[N_DEFAULT_TEXTURES] = {"/home/rmartens/shared/cs224textures/head.t3d",
                                                  "/home/rmartens/shared/cs224textures/engine.t3d",
-                                                    "/home/rmartens/shared/cs224textures/monkey.t3d"};
+                                                    "/home/rmartens/shared/cs224textures/VisMale.t3d"};
 
 static char *g_savepath_default = "Save slice as:";
 

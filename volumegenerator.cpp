@@ -173,7 +173,7 @@ void VolumeGenerator::saveas_raw(char *path, bool header)
 
 void VolumeGenerator::loadfrom_raw(const char *source, bool header)
 {
-    cout << "reading raw file" << endl;
+    cout << "reading raw file" << std::string(source) << endl;
     ifstream src;
     src.open(source, ios::in | ios::binary);
 
@@ -200,7 +200,7 @@ void VolumeGenerator::loadfrom_raw(const char *source, bool header)
         cout << "m_z: " << m_z << endl;
 
     }else{
-        m_x = 256;
+        m_x = 128;
         m_y = 256;
         m_z = 256;
     }

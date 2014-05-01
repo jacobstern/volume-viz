@@ -618,12 +618,8 @@ void GLWidget::loadShaderProgram(QGLShaderProgram &program, QString name)
 
 void GLWidget::loadVolume(const char* path)
 {
-    cout << "Generating mock voltex" << endl;
+    cout << "Generating mock voltex from " << path << endl;
     m_volgen = new VolumeGenerator(0,0,0);
-
-    cout << "loading brain from file " << path << endl;
-    m_volgen->loadfrom_raw(path, true);
-    cout << "brain has been loaded from file" << endl;
 
     float *transferFunction;
 
@@ -632,13 +628,17 @@ void GLWidget::loadVolume(const char* path)
         scaleObject = QVector3D(1.f, 1.f, 1.f);
     }
     else if (QString(path).endsWith("head.t3d")) {
-        transferFunction = g_transferMri;
+        transferFunction = g_transferEngine;
         scaleObject = QVector3D(1.f, 1.f, 0.8f);
     }
-    else {
+    else if (QString(path).endsWith("VisMale.t3d"))  {
         transferFunction = g_transferHead;
-        scaleObject = QVector3D(1.f, 1.f, 1.f);
+        scaleObject = QVector3D(1.57f, 1.f, 1.f);
     }
+
+    cout << "loading brain from file: " << path << endl;
+    m_volgen->loadfrom_raw(path, true);
+    cout << "brain has been loaded from file" << endl;
 
     size_t size;
     byte* texels = m_volgen->getBytes(size);
