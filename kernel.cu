@@ -39,6 +39,9 @@ static struct cudaGraphicsResource *pixelBuffer, *texture0, *texture1;
 typedef texture<uchar4, cudaTextureType2D, cudaReadModeElementType> inTexture2D;
 inTexture2D inTexture0, inTexture1;
 
+typedef texture<float4, cudaTextureType1D, cudaReadModeElementType> inTexture1D;
+inTexture1D transferTexture;
+
 typedef unsigned char uchar;
 
 // volumetric texture
@@ -395,6 +398,7 @@ void runCuda(int width,
 
         kernel< SLICE_NONE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
 
+        break;
 
     case SLICE_PLANE:
 
@@ -410,7 +414,7 @@ void runCuda(int width,
 
 // load volumetric texture into the GPU
 void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
-                    cudaArray** volumeArray) {
+                    float transferFunction[1024], cudaArray** volumeArray) {
 
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<unsigned char>();
 
@@ -444,8 +448,14 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
 
     checkCudaErrors( cudaBindTextureToArray(texVolume, devVolume, channelDesc));
 
-
     cout << "texture array has been memcopied" << endl;
+
+    float *devTransfer;
+    checkCudaErrors( cudaMalloc( &devTransfer, 1024 *  sizeof(float) ) );
+    checkCudaErrors( cudaMemcpy( devTransfer, (void*) transferFunction, 1024 * sizeof(float), cudaMemcpyDefault) );
+
+    cudaChannelFormatDesc floatChannelDesc = cudaCreateChannelDesc<float>();
+    checkCudaErrors( cudaBindTexture( 0L, transferTexture, devTransfer, floatChannelDesc, 1024 * sizeof(float) ) );
 
 }
 

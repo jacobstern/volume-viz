@@ -51,6 +51,7 @@
 #include "kernel.cuh"
 
 #include "params.h"
+#include "transfer_functions.h"
 
 using std::cout;
 using std::endl;
@@ -624,16 +625,18 @@ void GLWidget::loadVolume(const char* path)
     m_volgen->loadfrom_raw(path, true);
     cout << "brain has been loaded from file" << endl;
 
+    float *transferFunction;
+
     if (QString(path).endsWith("engine.t3d")) {
-        transferPreset = TRANSFER_PRESET_ENGINE;
+        transferFunction = g_transferEngine;
         scaleObject = QVector3D(1.f, 1.f, 1.f);
     }
     else if (QString(path).endsWith("head.t3d")) {
-        transferPreset = TRANSFER_PRESET_MRI;
+        transferFunction = g_transferEngine;
         scaleObject = QVector3D(1.f, 1.f, 0.8f);
     }
     else {
-        transferPreset = TRANSFER_PRESET_DEFAULT;
+        transferFunction = g_transferHead;
         scaleObject = QVector3D(1.f, 1.f, 1.f);
     }
 
@@ -642,7 +645,7 @@ void GLWidget::loadVolume(const char* path)
     cout << "size: " << size << endl;
 
     cout << "Loading mock voltex into CUDA" << endl;
-    cudaLoadVolume(texels, size, m_volgen->getDims(), &m_volumeArray);
+    cudaLoadVolume(texels, size, m_volgen->getDims(), transferFunction, &m_volumeArray);
     cout << "Mock voltex has been loaded into CUDA" << endl;
 
     delete m_volgen;

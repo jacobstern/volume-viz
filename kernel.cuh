@@ -46,7 +46,7 @@ extern "C" {
                  cudaArray* volumeArray);
 
     void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
-                        cudaArray** volumeArray); // load volumetric texture
+                        float transferFunction[1024], cudaArray** volumeArray); // load volumetric texture
 }
 
 
