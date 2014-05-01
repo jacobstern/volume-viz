@@ -140,6 +140,7 @@ Window::Window()
                                     m_sliceSliders[i]->setRange(SLICE_SLIDER_MIN, SLICE_SLIDER_MAX);
                                     sliderBox->addWidget(m_sliceSliders[i]);
                                     connect(m_sliceSliders[i], SIGNAL(valueChanged(int)), this, SLOT(renderSlice()));
+                                    m_sliceSliders[i]->setValue(SLICE_SLIDER_INIT);
                                 } sliceSliderBox->addLayout(sliderBox);
                             }
                         }
@@ -271,13 +272,13 @@ void Window::renderSlice(int value)
 
     }else if(m_sliceTab->currentIndex() == 1){
 
-        dx = ((float)m_sliceSliders[0]->value())/((float)SLICE_SLIDER_MAX);
-        dy = ((float)m_sliceSliders[1]->value())/((float)SLICE_SLIDER_MAX);
-        dz = ((float)m_sliceSliders[2]->value())/((float)SLICE_SLIDER_MAX);
+        dx = ((float)m_sliceSliders[0]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2;
+        dy = ((float)m_sliceSliders[1]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2;
+        dz = ((float)m_sliceSliders[2]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2;
 
-        theta = ((float)m_sliceSliders[3]->value())/((float)SLICE_SLIDER_MAX) * 2 * M_PI;
-        phi = ((float)m_sliceSliders[4]->value())/((float)SLICE_SLIDER_MAX) * 2 * M_PI;
-        psi = ((float)m_sliceSliders[5]->value())/((float)SLICE_SLIDER_MAX) * 2 * M_PI;
+        theta = ((float)m_sliceSliders[3]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2 * M_PI * 2;
+        phi = ((float)m_sliceSliders[4]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2 * M_PI * 2;
+        psi = ((float)m_sliceSliders[5]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2 * M_PI * 2;
 
     }else{
         cerr << "ERROR: Invalid index for slice tab" << endl;

@@ -22,8 +22,9 @@
 #define LEFT_COLUMN_WIDTH 450
 #define LEFT_COLUMN_HEIGHT 600
 
-#define SLICE_SLIDER_MIN 0
+#define SLICE_SLIDER_MIN -100
 #define SLICE_SLIDER_MAX 100
+#define SLICE_SLIDER_INIT 0
 
 
 static char *g_texture_names[N_DEFAULT_TEXTURES] = {"head",

@@ -611,7 +611,7 @@ void advanced_slice_kernel(float *buffer, BufferParameters bp, REAL* trans)
         pos.z = raw.x * trans[2] + raw.y * trans[6] + raw.z * trans[10] + raw.w * trans[14];
 
         float sample;
-        if(pos.x < 0.0 || pos.x > 1.0 || pos.y < 0.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0){
+        if(pos.x <= 0.0 || pos.x >= 1.0 || pos.y <= 0.0 || pos.y >= 1.0 || pos.z <= 0.0 || pos.z >= 1.0){
             sample = 1.0;
         }else{
 
