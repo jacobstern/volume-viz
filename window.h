@@ -51,7 +51,6 @@
 #include <QMap>
 using std::map;
 
-
 QT_BEGIN_NAMESPACE
 class QSlider;
 QT_END_NAMESPACE

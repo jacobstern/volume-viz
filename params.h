@@ -1,6 +1,8 @@
 #ifndef PARAMS_H
 #define PARAMS_H
 
+#include "output.h"
+
 #include <iostream>
 
 #define VOLUME_RESOLUTION 256
@@ -19,6 +21,9 @@
 
 #define LEFT_COLUMN_WIDTH 450
 #define LEFT_COLUMN_HEIGHT 600
+
+#define SLICE_SLIDER_MIN 0
+#define SLICE_SLIDER_MAX 100
 
 
 static char *g_texture_names[N_DEFAULT_TEXTURES] = {"head",
@@ -57,5 +62,8 @@ struct BufferParameters {
     size_t height;
     size_t width;
 };
+
+std::ostream& operator<<(std::ostream& os, const SliceParameters p);
+std::ostream& operator<<(std::ostream& os, const BufferParameters p);
 
 #endif // PARAMS_H

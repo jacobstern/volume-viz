@@ -503,19 +503,8 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
 
 
 // ################ Robin's extra stuff for slicing
+#include "output.h"
 
-std::ostream& operator<<(std::ostream& os, const SliceParameters p)
-{
-    os << "dx: " << p.dx << ", dy: " << p.dy << ", dz: " << p.dz
-       << "theta: " << p.theta << ", phi: " << p.phi << ", psi: " << p.psi;
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const BufferParameters p)
-{
-    os << "height: " << p.height << ", width: " << p.width;
-    return os;
-}
 
 void invoke_slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c)
 {

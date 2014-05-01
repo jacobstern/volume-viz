@@ -137,6 +137,7 @@ Window::Window()
                                     QLabel* curLabel = new QLabel(g_slice_slider_captions[i]);
                                     sliderBox->addWidget(curLabel);
                                     m_sliceSliders[i] = new QSlider(Qt::Horizontal);
+                                    m_sliceSliders[i]->setRange(SLICE_SLIDER_MIN, SLICE_SLIDER_MAX);
                                     sliderBox->addWidget(m_sliceSliders[i]);
                                 } sliceSliderBox->addLayout(sliderBox);
                             }
@@ -229,6 +230,9 @@ void Window::renderSlice(int value)
     float dx = 0.0;
     float dy = 0.0;
     float dz = 0.0;
+    float theta = 0.0;
+    float phi = 0.0;
+    float psi = 0.0;
 
     canonicalOrientation orientation;
 
@@ -241,40 +245,61 @@ void Window::renderSlice(int value)
         }
     }
 
+    // TODO: Get active tab
 
-    switch(orientation) {
+    if(m_sliceTab->currentIndex() == 0){
 
-    case SAGITTAL:
-        dz = ((float)val)/((float)SLICE_EDGELENGTH);
-        break;
+        switch(orientation) {
 
-    case HORIZONTAL:
-        dy = ((float)val)/((float)SLICE_EDGELENGTH);
-        break;
+        case SAGITTAL:
+            dz = ((float)val)/((float)SLICE_EDGELENGTH);
+            break;
 
-    case CORONAL:
-        dx = ((float)val)/((float)SLICE_EDGELENGTH);
-        break;
+        case HORIZONTAL:
+            dy = ((float)val)/((float)SLICE_EDGELENGTH);
+            break;
 
-    default:
-        cout << "ERROR: Invalid default orientation " << endl;
-        assert(false);
+        case CORONAL:
+            dx = ((float)val)/((float)SLICE_EDGELENGTH);
+            break;
+
+        default:
+            cout << "ERROR: Invalid default orientation " << endl;
+            assert(false);
+        }
+
+    }else if(m_sliceTab->currentIndex() == 1){
+
+    }else{
+        cerr << "ERROR: Invalid index for slice tab" << endl;
+
+        dx = ((float)m_sliceSliders[0]->value())/((float)SLICE_SLIDER_MAX);
+        dy = ((float)m_sliceSliders[1]->value())/((float)SLICE_SLIDER_MAX);
+        dz = ((float)m_sliceSliders[2]->value())/((float)SLICE_SLIDER_MAX);
+
+        theta = ((float)m_sliceSliders[3]->value())/((float)SLICE_SLIDER_MAX) * M_PI;
+        theta = ((float)m_sliceSliders[4]->value())/((float)SLICE_SLIDER_MAX) * M_PI;
+        theta = ((float)m_sliceSliders[5]->value())/((float)SLICE_SLIDER_MAX) * M_PI;
+
     }
 
 
-    float theta = 0.0;
-    float phi = 0.0;
-    float psi = 0.0;
+
 
     int height = SLICE_EDGELENGTH;
     int width = SLICE_EDGELENGTH;
 
     SliceParameters sliceParameters(dx, dy, dz, theta, phi, psi);
+
+    cout << "Slice parameters: " << sliceParameters << endl;
+
+
     BufferParameters bufferParameters(height, width);
 
-    cout << "Window: Rendering slice" << endl;
-    m_sliceWidget->renderSlice(sliceParameters, bufferParameters, orientation);
-    cout << "Window: Slice rendered" << endl;
+    cout << "no rendering; debugging!" << endl;
+//    cout << "Window: Rendering slice" << endl;
+//    m_sliceWidget->renderSlice(sliceParameters, bufferParameters, orientation);
+//    cout << "Window: Slice rendered" << endl;
 }
 
 

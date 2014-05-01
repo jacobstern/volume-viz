@@ -148,22 +148,22 @@ void SliceWidget::saveSliceAs(QString fileName)
     }
 }
 
-void SliceWidget::getTransformationMatrix(SliceParameters sliceParameters)
+Matrix4x4 SliceWidget::getTransformationMatrix(SliceParameters sliceParameters)
 {
-    assert(sliceParameters.theata >= 0);
+    assert(sliceParameters.theta >= 0);
     assert(sliceParameters.theta < 6.3f); // ballpark estimate of 2 pi; might have rounding error, but this bound is tight enough
     assert(sliceParameters.phi >= 0);
     assert(sliceParameters.phi < 6.3f);
     assert(sliceParameters.psi >= 0);
     assert(sliceParameters.psi < 6.3f);
 
-    rotX = getRotXMat(sliceParameters.theta);
-    rotY = getRotYMat(sliceParameters.phi);
-    rotZ = getRotZmat(sliceParameters.psi);
+    Matrix4x4 rotX = getRotXMat(sliceParameters.theta);
+    Matrix4x4 rotY = getRotYMat(sliceParameters.phi);
+    Matrix4x4 rotZ = getRotZMat(sliceParameters.psi);
 
-    trans = getTransformationMatrix( Vector4(sliceParameters.dx, sliceParameters.dy, sliceParameters.dz  ) );
+    Matrix4x4 trans = getTransMat( Vector4(sliceParameters.dx, sliceParameters.dy, sliceParameters.dz, 1.0) );
 
-    compound = trans * rotX * rotY * rotZ;
+    Matrix4x4 compound = trans * rotX * rotY * rotZ;
 
     cout << "rotX: " << rotX << endl;
 

@@ -15,7 +15,8 @@ SOURCES       = glwidget.cpp \
     slicewidget.cpp \
     cs123math/CS123Matrix.cpp \
     cs123math/CS123Matrix.inl \
-    cs123math/CS123Vector.inl
+    cs123math/CS123Vector.inl \
+    params.cpp
 QT           += opengl widgets
 
 # install
