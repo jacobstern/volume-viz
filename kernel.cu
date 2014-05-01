@@ -254,7 +254,8 @@ void mainLoop(uchar cache[],
                         tanFovY * ( voxelDist ),
                         STEP_SIZE * 2.f
                         ),
-                   voxelPos = origin + direction * voxelDist;
+                   voxelPos = origin + direction * voxelDist,
+                   scale    = make_float3( camera.scale[0], camera.scale[1], camera.scale[2] );
             float4 shaded = shadeVoxel<_sliceType, _transferPreset>( cache, cacheIdx, cacheDim, i, voxelPos, voxelDim, slicePoint, sliceNormal, shading.phongShading );
 
             if (shaded.w > 1e-6) {

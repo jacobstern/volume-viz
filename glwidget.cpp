@@ -240,6 +240,10 @@ void GLWidget::paintGL()
 
     struct camera_params cameraParams;
 
+    cameraParams.scale[0]  = scaleObject.x();
+    cameraParams.scale[1]  = scaleObject.y();
+    cameraParams.scale[2]  = scaleObject.z();
+
     cameraParams.origin[0] = pos.x();
     cameraParams.origin[1] = pos.y();
     cameraParams.origin[2] = pos.z();
