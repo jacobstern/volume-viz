@@ -47,7 +47,8 @@ typedef unsigned char uchar;
 // volumetric texture
 texture<unsigned char, cudaTextureType3D, cudaReadModeNormalizedFloat> texVolume;
 
-cudaArray *devVolume = 0;
+cudaArray *devVolume   = 0;
+float     *devTransfer = 0;
 
 __device__
 float vectorLength(float3 vec)
@@ -118,9 +119,7 @@ float4 blend(float4 src, float4 dst) {
 
 __device__
 float4 transferFunction(uchar sampled) {
-    float asFloat = ucharToFloat( sampled );
-
-    return make_float4( asFloat, asFloat, asFloat, clamp(asFloat * asFloat * 2.f, 0.f, 1.f) );
+    return tex1Dfetch( transferTexture, sampled );
 }
 
 __device__
@@ -376,6 +375,11 @@ void runCuda(int width,
     checkCudaErrors( cudaGraphicsSubResourceGetMappedArray(&array1, texture1, 0, 0) );
     checkCudaErrors( cudaBindTextureToArray(inTexture1, array1) );
 
+    transferTexture.normalized = false;
+
+    assert(devTransfer);
+    checkCudaErrors( cudaBindTexture( NULL, transferTexture, devTransfer, 1024 * sizeof(float) ) );
+
     void *devBuffer;
     size_t bufferSize;
     checkCudaErrors( cudaGraphicsResourceGetMappedPointer(&devBuffer, &bufferSize, pixelBuffer) );
@@ -450,12 +454,8 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
 
     cout << "texture array has been memcopied" << endl;
 
-    float *devTransfer;
     checkCudaErrors( cudaMalloc( &devTransfer, 1024 *  sizeof(float) ) );
-    checkCudaErrors( cudaMemcpy( devTransfer, (void*) transferFunction, 1024 * sizeof(float), cudaMemcpyDefault) );
-
-    cudaChannelFormatDesc floatChannelDesc = cudaCreateChannelDesc<float>();
-    checkCudaErrors( cudaBindTexture( 0L, transferTexture, devTransfer, floatChannelDesc, 1024 * sizeof(float) ) );
+    checkCudaErrors( cudaMemcpy( devTransfer, transferFunction, 1024 * sizeof(float), cudaMemcpyHostToDevice) );
 
 }
 

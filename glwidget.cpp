@@ -93,7 +93,7 @@ static inline float nrm( float glCoord )
 //! [0]
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
-      font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f), resolutionScale(4),
+      font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f), resolutionScale(3),
       transferPreset(TRANSFER_PRESET_DEFAULT), phongShading(false), filterOutput(true), scaleObject(1.f, 1.f, 1.f)
 {
     logo = 0;
@@ -632,7 +632,7 @@ void GLWidget::loadVolume(const char* path)
         scaleObject = QVector3D(1.f, 1.f, 1.f);
     }
     else if (QString(path).endsWith("head.t3d")) {
-        transferFunction = g_transferEngine;
+        transferFunction = g_transferMri;
         scaleObject = QVector3D(1.f, 1.f, 0.8f);
     }
     else {
