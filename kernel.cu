@@ -125,12 +125,18 @@ float4 transferFunction(uchar sampled) {
         return make_float4( asFloat, asFloat, asFloat, clamp(asFloat * asFloat * 2.f, 0.f, 1.f) );
 
     case TRANSFER_PRESET_MRI:
+        float adjusted;
 
-        float highlight   = 0.6,
-              adjust      = 1.f - 5.f * fabs(highlight - asFloat),
-              adjusted    = clamp( asFloat + adjust * .3, asFloat, 1.f );
+        if (asFloat < .3f)
+            adjusted = 0.f;
+        else {
+            float highlight   = 0.6,
+                  adjust      = 1.f - 12.f * fabs(highlight - asFloat);
+                  adjusted    = clamp( asFloat + adjust * .3, .1f, 1.f );
 
-        return make_float4( asFloat, adjusted, asFloat, adjusted * adjusted * 0.05);
+        }
+
+        return make_float4( adjusted, adjusted, adjusted, adjusted  * 0.05);
 
     }
 

@@ -127,6 +127,8 @@ private:
     QMatrix4x4 perspective;
     float fovX, fovY;
 
+    QVector3D     scaleObject;
+
     VolumeGenerator* m_volgen;
 
     cudaArray* m_volumeArray;

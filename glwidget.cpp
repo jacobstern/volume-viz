@@ -93,7 +93,7 @@ static inline float nrm( float glCoord )
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
       font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f), resolutionScale(4),
-      transferPreset(TRANSFER_PRESET_DEFAULT), phongShading(false), filterOutput(true)
+      transferPreset(TRANSFER_PRESET_DEFAULT), phongShading(false), filterOutput(true), scaleObject(1.f, 1.f, 1.f)
 {
     logo = 0;
 
@@ -185,6 +185,10 @@ void GLWidget::paintGL()
 
     camera->updateView();
 
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix(); // Object Transformation
+    glScalef( scaleObject.x(), scaleObject.y(), scaleObject.z() );
+
     {
         QPainter frontFace(framebuffers[FRONT_FACE_BUFFER]);
 
@@ -213,6 +217,8 @@ void GLWidget::paintGL()
         backFace.end();
     }
 
+    glPopMatrix(); // Object transformation
+
     struct slice_params sliceParams;
 
     if (hasCuttingPlane) {
@@ -230,9 +236,9 @@ void GLWidget::paintGL()
         sliceParams.type = SLICE_NONE;
     }
 
-    struct camera_params cameraParams;
-
     QVector3D pos = camera->getPosition();
+
+    struct camera_params cameraParams;
 
     cameraParams.origin[0] = pos.x();
     cameraParams.origin[1] = pos.y();
@@ -612,12 +618,15 @@ void GLWidget::loadVolume(const char* path)
 
     if (QString(path).endsWith("engine.t3d")) {
         transferPreset = TRANSFER_PRESET_ENGINE;
+        scaleObject = QVector3D(1.f, 1.f, 1.f);
     }
     else if (QString(path).endsWith("head.t3d")) {
         transferPreset = TRANSFER_PRESET_MRI;
+        scaleObject = QVector3D(1.f, 1.f, 0.8f);
     }
     else {
         transferPreset = TRANSFER_PRESET_DEFAULT;
+        scaleObject = QVector3D(1.f, 1.f, 1.f);
     }
 
     size_t size;
