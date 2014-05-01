@@ -284,23 +284,13 @@ void Window::renderSlice(int value)
         assert(false);
     }
 
-
-
-
     int height = SLICE_EDGELENGTH;
     int width = SLICE_EDGELENGTH;
 
     SliceParameters sliceParameters(dx, dy, dz, theta, phi, psi);
-
-    cout << "Slice parameters: " << sliceParameters << endl;
-
-
     BufferParameters bufferParameters(height, width);
 
-    cout << "no rendering; debugging!" << endl;
-//    cout << "Window: Rendering slice" << endl;
-//    m_sliceWidget->renderSlice(sliceParameters, bufferParameters, orientation);
-//    cout << "Window: Slice rendered" << endl;
+    m_sliceWidget->renderSlice(sliceParameters, bufferParameters, orientation);
 }
 
 

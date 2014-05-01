@@ -507,32 +507,41 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
 
 
 void invoke_slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c)
-{
-
-    cout << "pretending to invoke kernel" << endl;
-
+{    
     float* buffer_dev;
-
     checkCudaErrors( cudaMalloc( &buffer_dev, bp.height*bp.width*sizeof(float)) );
 
     int dim = 1024;
-
     dim3 grids(dim/16, dim/16);
     dim3 threads(16,16);
 
-    cout << "launching kernel" << endl;
-
-    cout << "kernel parameters: " << sp << endl << bp << endl;
-
-
     slice_kernel<<<grids,threads>>>( buffer_dev, bp, sp, c );
-    cout << "kernel launched" << endl;
 
     checkCudaErrors( cudaMemcpy( buffer, buffer_dev, bp.height*bp.width*sizeof(float), cudaMemcpyDeviceToHost) );
+    checkCudaErrors( cudaFree( buffer_dev ) );
+}
 
+
+void invoke_advanced_slice_kernel(float *buffer, BufferParameters bp, Matrix4x4 trans)
+{
+    float* buffer_dev;
+    REAL* trans_dev;
+    checkCudaErrors( cudaMalloc( &buffer_dev, bp.height*bp.width*sizeof(float)) );
+    checkCudaErrors( cudaMalloc( &buffer_dev, 16*sizeof(REAL) ) );
+    checkCudaErrors( cudaMemcpy( trans_dev, trans.data, cudaMemcpyHostToDevice) );
+
+    int dim = 1024;
+    dim3 grids(dim/16, dim/16);
+    dim3 threads(16,16);
+
+    slice_kernel<<<grids,threads>>>( buffer_dev, bp, trans_dev );
+
+    checkCudaErrors( cudaMemcpy( buffer, buffer_dev, bp.height*bp.width*sizeof(float), cudaMemcpyDeviceToHost) );
     checkCudaErrors( cudaFree( buffer_dev ) );
 
+
 }
+
 __global__
 void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c)
 {
@@ -548,13 +557,6 @@ void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canoni
             pos.x = 0;
             pos.y = 0;
             pos.z = 0;
-
-
-            // TODO: Account for rotation
-
-
-
-
 
             switch(c){
 
@@ -585,13 +587,39 @@ void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canoni
             float sample = tex3D(texVolume, pos.x, pos.y, pos.z);
 
             buffer[offset] = sample;
-
-//          buffer[offset] = (pos.x + pos.y)/2;
-
-
     }
+}
 
 
+void advanced_slice_kernel(float *buffer, BufferParameters bp, REAL* trans)
+{
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int offset = j*bp.height+i;
+
+    if(j<bp.height && i<bp.width){
+
+        float4 raw;
+        raw.x = ((float)i)/((float)bp.width);
+        raw.y = ((float)j)/((float)bp.height);
+        raw.z = 0;
+        raw.w = 1;
+
+        float4 pos;
+        pos.x = raw.x * trans[0] + raw.y * trans[4] + raw.z * trans[8] + raw.w * trans[12];
+        pos.y = raw.x * trans[1] + raw.y * trans[5] + raw.z * trans[9] + raw.w * trans[13];
+        pos.z = raw.x * trans[2] + raw.y * trans[6] + raw.z * trans[10] + raw.w * trans[14];
+
+        float sample;
+        if(pos.x < 0.0 || pos.x > 1.0 || pos.y < 0.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0){
+            sample = 1.0;
+        }else{
+
+            sample = tex3D(texVolume, pos.x, pos.y, pos.z);
+        }
+
+        buffer[offset] = sample;
+    }
 }
 
 

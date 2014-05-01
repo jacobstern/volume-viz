@@ -101,9 +101,15 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
         cout << "new slice buffer allocated" << endl;
     }
 
-    invoke_slice_kernel(m_sliceBuffer, bufferParameters, sliceParameters, orientation);
+    if(orientation == FREE_FORM){
+        Matrix4x4 trans = getTransformationMatrix(sliceParameters);
+        invoke_advanced_slice_kernel(m_sliceBuffer, bufferParameters, sliceParameters, trans);
 
-    cout << "Updating slice image" << endl;\
+    }else{
+       invoke_slice_kernel(m_sliceBuffer, bufferParameters, sliceParameters, orientation);
+    }
+
+    cout << "Updating slice image" << endl;
     delete m_sliceImage;
     m_sliceImage = new QImage(bufferParameters.width, bufferParameters.height, QImage::Format_RGB32);
     BGRA* bits = new BGRA[bufferParameters.width*bufferParameters.height];
@@ -165,7 +171,7 @@ Matrix4x4 SliceWidget::getTransformationMatrix(SliceParameters sliceParameters)
 
     Matrix4x4 compound = trans * rotX * rotY * rotZ;
 
-    cout << "rotX: " << rotX << endl;
+//    cout << "compound: " << compound << endl;
 
     return compound;
 

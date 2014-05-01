@@ -11,6 +11,8 @@
 
 #include "params.h"
 
+#include "cs123math/CS123Algebra.h"
+
 extern "C" {
 
 #define SLICE_NONE  -1
@@ -36,6 +38,8 @@ extern "C" {
         bool  phongShading;
     };
 
+
+
     void initCuda();
     void registerCudaResources(GLuint input0, GLuint input1, GLuint output);
     void runCuda(int width,
@@ -53,9 +57,12 @@ extern "C" {
 // ############## Robin's extra stuff for slicing
 void invoke_slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c);
 
+void invoke_advanced_slice_kernel(float *buffer, BufferParameters bp, Matrix4x4 trans);
+
 // NOTE: Perhaps pass in matrix format...
 __global__
 void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c);
+void advanced_slice_kernel(float *buffer, BufferParameters bp, REAL* trans);
 
 
 
