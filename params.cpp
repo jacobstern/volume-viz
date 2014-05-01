@@ -5,7 +5,7 @@
 std::ostream& operator<<(std::ostream& os, const SliceParameters p)
 {
     os << "dx: " << p.dx << ", dy: " << p.dy << ", dz: " << p.dz
-       << "theta: " << p.theta << ", phi: " << p.phi << ", psi: " << p.psi;
+       << ", theta: " << p.theta << ", phi: " << p.phi << ", psi: " << p.psi;
     return os;
 }
 
