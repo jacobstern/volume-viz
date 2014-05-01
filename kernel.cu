@@ -20,8 +20,6 @@
 using std::cout;
 using std::endl;
 
-// TODO: Don't hardcode this
-#define STEP_SIZE 0.00390625f // 1/256
 
 #define CACHE_DEPTH             32
 #define CACHE_DEPTH_MINUS_TWOF  30.f
@@ -49,6 +47,8 @@ texture<unsigned char, cudaTextureType3D, cudaReadModeNormalizedFloat> texVolume
 
 cudaArray *devVolume   = 0;
 float     *devTransfer = 0;
+
+dim3      volumeDim;
 
 __device__
 float vectorLength(float3 vec)
@@ -130,7 +130,7 @@ void rayMarch(unsigned char cache[],
               float3 direction,
               float3 scale) {
     float3 pos  = origin,
-           step = direction * STEP_SIZE;
+           step = direction;
 
     for (int i = 0; i < CACHE_DEPTH; ++i) {
         uchar sampled = sample( (pos - .5) / scale + .5 );
@@ -212,6 +212,7 @@ void mainLoop(uchar cache[],
               float3 origin,
               float3 direction,
               float upper,
+              float3 step,
               float4 & result)
 {
     float  dist = 0.f;
@@ -224,17 +225,20 @@ void mainLoop(uchar cache[],
            sliceNormal = make_float3( slice.params[3], slice.params[4], slice.params[5] ),
            scale       = make_float3( camera.scale[0], camera.scale[1], camera.scale[2] );
 
+    float3  scaledDirection = direction * step;
+    float   scaledStep      = vectorLength( scaledDirection );
+
     while ( dist < upper ) { // No infinite loop plz
         float3 pos = origin + direction * dist;
 
-        rayMarch( cache, cacheIdx, cacheDim, pos, direction, scale );
+        rayMarch( cache, cacheIdx, cacheDim, pos, scaledDirection, scale );
 
         for (int i = 1; i < CACHE_DEPTH - 1; ++i) {
-            float voxelDist = i * STEP_SIZE + dist;
+            float voxelDist = i * scaledStep + dist;
             float3 voxelDim = make_float3(
                         tanFovX * ( voxelDist ),
                         tanFovY * ( voxelDist ),
-                        STEP_SIZE * 2.f
+                        scaledStep * 2.f
                         ),
                    voxelPos = origin + direction * voxelDist;
             // voxelPos = (voxelPos - .5f) * scale + .5f;
@@ -249,7 +253,7 @@ void mainLoop(uchar cache[],
             }
         }
 
-        dist += STEP_SIZE * CACHE_DEPTH_MINUS_TWOF;
+        dist += scaledStep * CACHE_DEPTH_MINUS_TWOF;
     }
 }
 
@@ -260,7 +264,8 @@ void kernel(void *buffer,
             int height,
             struct camera_params camera,
             struct slice_params   slice,
-            struct shading_params shading)
+            struct shading_params shading,
+            float3 step)
 {
     extern __shared__ unsigned char sharedMemory[];
     uchar4 *pixels = (uchar4*) buffer;
@@ -328,7 +333,7 @@ void kernel(void *buffer,
          imageDim(width, height);
 
     float4 result;
-    mainLoop<_sliceType>(sharedMemory, cacheIdx, cacheDim, imageDim, camera, slice, shading, pos, ray, upper, result);
+    mainLoop<_sliceType>(sharedMemory, cacheIdx, cacheDim, imageDim, camera, slice, shading, pos, ray, upper, step, result);
 
     if (!isBorder) {
         result.x = clamp(result.x, 0.f, 1.f);
@@ -386,6 +391,8 @@ void runCuda(int width,
     size_t bufferSize;
     checkCudaErrors( cudaGraphicsResourceGetMappedPointer(&devBuffer, &bufferSize, pixelBuffer) );
 
+    float3 step = make_float3( 1.f / volumeDim.x, 1.f / volumeDim.y, 1.f / volumeDim.z );
+
     // For convenience, greedily chunk the screen into 14x14 squares
     dim3 slabSize(BLOCK_WIDTH - 2, BLOCK_HEIGHT - 2),
          blockDims(width / slabSize.x, height / slabSize.y),
@@ -402,13 +409,13 @@ void runCuda(int width,
 
     case SLICE_NONE:
 
-        kernel< SLICE_NONE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
+        kernel< SLICE_NONE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading, step );
 
         break;
 
     case SLICE_PLANE:
 
-        kernel< SLICE_PLANE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
+        kernel< SLICE_PLANE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading, step );
 
     }
 
@@ -436,6 +443,8 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
     int width = dims.x;
     int height = dims.y;
     int depth = dims.z;
+
+    volumeDim = dim3( width, height, depth );
 
     cudaMemcpy3DParms params = {0};
     params.srcPtr = make_cudaPitchedPtr(texels, width * sizeof(unsigned char), width, height);

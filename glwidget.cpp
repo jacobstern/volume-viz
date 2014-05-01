@@ -469,6 +469,9 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         p.setY( nrm( p.y() ) );
         p.setZ( nrm( p.z() ) );
 
+        if (n.y() > 1e-6)
+            n = -n;
+
         hasCuttingPlane = true;
         renderingDirty  = true;
 
