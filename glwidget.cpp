@@ -412,6 +412,8 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
         cutPoint = cutPoint + cutUp    * dy / ( height() );
 
         renderingDirty = true;
+
+        onUpdateSlicePlane();
     }
 
 
@@ -471,6 +473,8 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
 
         isDragging = false;
         didStartDragging = false;
+
+        onUpdateSlicePlane();
     }
 
     update();
@@ -645,13 +649,10 @@ void GLWidget::loadVolume(const char* path)
     update();
 }
 
-
-
-
-
-
-
-
-
+void GLWidget::onUpdateSlicePlane()
+{
+    // Update slice in SliceWidget
+    qDebug() << "TODO: update slice widget";
+}
 
 

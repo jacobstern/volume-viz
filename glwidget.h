@@ -86,6 +86,8 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
     void wheelEvent(QWheelEvent *event);
+
+    void onUpdateSlicePlane();
 //! [2]
 
 //! [3]
