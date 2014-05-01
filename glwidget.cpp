@@ -194,6 +194,7 @@ void GLWidget::paintGL()
         QPainter frontFace(framebuffers[FRONT_FACE_BUFFER]);
 
         firstPass.bind();
+        firstPass.setUniformValue( "scale", scaleObject.x(), scaleObject.y(), scaleObject.z() );
 
         glClearColor( 0.f, 0.f, 0.f, 0.f );
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -207,6 +208,7 @@ void GLWidget::paintGL()
         QPainter backFace(framebuffers[BACK_FACE_BUFFER]);
 
         firstPass.bind();
+        firstPass.setUniformValue( "scale", scaleObject.x(), scaleObject.y(), scaleObject.z() );
 
         glClearColor( 0.f, 0.f, 0.f, 0.f );
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

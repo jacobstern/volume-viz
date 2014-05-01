@@ -127,12 +127,13 @@ void rayMarch(unsigned char cache[],
               dim3   cacheIdx,
               dim3   cacheDim,
               float3 origin,
-              float3 direction) {
+              float3 direction,
+              float3 scale) {
     float3 pos  = origin,
            step = direction * STEP_SIZE;
 
     for (int i = 0; i < CACHE_DEPTH; ++i) {
-        uchar sampled = sample( pos );
+        uchar sampled = sample( (pos - .5) / scale + .5 );
 
         cache[ i * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
                 = sampled;
@@ -220,12 +221,13 @@ void mainLoop(uchar cache[],
            tanFovY = tan( camera.fovY * M_PI / (180.f * imageDim.y ) );
 
     float3 slicePoint  = make_float3( slice.params[0], slice.params[1], slice.params[2] ),
-           sliceNormal = make_float3( slice.params[3], slice.params[4], slice.params[5] );
+           sliceNormal = make_float3( slice.params[3], slice.params[4], slice.params[5] ),
+           scale       = make_float3( camera.scale[0], camera.scale[1], camera.scale[2] );
 
     while ( dist < upper ) { // No infinite loop plz
         float3 pos = origin + direction * dist;
 
-        rayMarch( cache, cacheIdx, cacheDim, pos, direction );
+        rayMarch( cache, cacheIdx, cacheDim, pos, direction, scale );
 
         for (int i = 1; i < CACHE_DEPTH - 1; ++i) {
             float voxelDist = i * STEP_SIZE + dist;
@@ -234,8 +236,8 @@ void mainLoop(uchar cache[],
                         tanFovY * ( voxelDist ),
                         STEP_SIZE * 2.f
                         ),
-                   voxelPos = origin + direction * voxelDist,
-                   scale    = make_float3( camera.scale[0], camera.scale[1], camera.scale[2] );
+                   voxelPos = origin + direction * voxelDist;
+            // voxelPos = (voxelPos - .5f) * scale + .5f;
             float4 shaded = shadeVoxel<_sliceType>( cache, cacheIdx, cacheDim, i, voxelPos, voxelDim, slicePoint, sliceNormal, shading.phongShading );
 
             if (shaded.w > 1e-6) {
