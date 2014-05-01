@@ -117,6 +117,9 @@ private:
 
     QComboBox* m_fileFormats;
 
+    Vector4 m_point;
+    Vector4 m_normal;
+
 };
 //! [0]
 

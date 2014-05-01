@@ -292,6 +292,19 @@ void Window::renderSlice(int value)
 
         orientation = FREE_FORM;
 
+    }else if(m_sliceTab->currentIndex() == 2){
+
+        dx = m_point.x;
+        dy = m_point.y;
+        dz = m_point.z;
+
+        // idea: Just take the dot products
+//        theta = acos(m_normal.x);
+//        phi = acos(m_normal.y);
+//        psi = acos(m_normal.z);
+
+        cout << "dx: " << dx << ", dy: " << dy << ", dz: " << dz << ", theta: " << theta << ", phi: " << phi << ", psi: " << psi << endl;
+
     }else{
         cerr << "ERROR: Invalid index for slice tab" << endl;
         assert(false);
@@ -309,6 +322,12 @@ void Window::renderSlice(int value)
 void Window::updateSlicePlane(Vector4 cutPoint, Vector4 cutNormal)
 {
     cout << "Window::updateSlicePlane: " << cutPoint << ", " << cutNormal << endl;
+
+    m_point = cutPoint;
+    m_normal = cutNormal;
+
+    m_sliceTab->setCurrentIndex(2);
+    renderSlice(0);
 }
 
 

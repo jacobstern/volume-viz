@@ -417,8 +417,8 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
         renderingDirty = true;
     } else if (event->buttons() & Qt::MiddleButton && hasCuttingPlane) {
-        cutPoint = cutPoint + cutRight * dx / ( width()  );
-        cutPoint = cutPoint + cutUp    * dy / ( height() );
+        cutPoint = cutPoint + cutRight * dx / ( width()  ) * 3.5;
+        cutPoint = cutPoint + cutUp    * dy / ( height() ) * 3.5;
 
         renderingDirty = true;
 
@@ -675,6 +675,8 @@ void GLWidget::onUpdateSlicePlane()
     normal.w = 0.0;
 
     ((Window*)parentWidget())->updateSlicePlane(point, normal);
+
+
 }
 
 
