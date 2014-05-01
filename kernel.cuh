@@ -62,6 +62,8 @@ void invoke_advanced_slice_kernel(float *buffer, BufferParameters bp, Matrix4x4 
 // NOTE: Perhaps pass in matrix format...
 __global__
 void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c);
+
+__global__
 void advanced_slice_kernel(float *buffer, BufferParameters bp, REAL* trans);
 
 

@@ -528,13 +528,13 @@ void invoke_advanced_slice_kernel(float *buffer, BufferParameters bp, Matrix4x4 
     REAL* trans_dev;
     checkCudaErrors( cudaMalloc( &buffer_dev, bp.height*bp.width*sizeof(float)) );
     checkCudaErrors( cudaMalloc( &buffer_dev, 16*sizeof(REAL) ) );
-    checkCudaErrors( cudaMemcpy( trans_dev, trans.data, cudaMemcpyHostToDevice) );
+    checkCudaErrors( cudaMemcpy( trans_dev, trans.data, 17*sizeof(REAL), cudaMemcpyHostToDevice) );
 
     int dim = 1024;
     dim3 grids(dim/16, dim/16);
     dim3 threads(16,16);
 
-    slice_kernel<<<grids,threads>>>( buffer_dev, bp, trans_dev );
+    advanced_slice_kernel<<<grids,threads>>>( buffer_dev, bp, trans_dev );
 
     checkCudaErrors( cudaMemcpy( buffer, buffer_dev, bp.height*bp.width*sizeof(float), cudaMemcpyDeviceToHost) );
     checkCudaErrors( cudaFree( buffer_dev ) );
@@ -590,7 +590,7 @@ void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canoni
     }
 }
 
-
+__global__
 void advanced_slice_kernel(float *buffer, BufferParameters bp, REAL* trans)
 {
     int j = threadIdx.y + blockIdx.y * blockDim.y;

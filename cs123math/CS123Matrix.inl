@@ -8,7 +8,10 @@
 #ifndef __CS123_MATRIX_INL__
 #define __CS123_MATRIX_INL__
 
-#include <CS123Common.h>
+//#include <CS123Common.h>
+
+#include "../CS123Common.h"
+
 #include <assert.h>
 #include <math.h>
 

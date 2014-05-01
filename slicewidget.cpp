@@ -103,7 +103,7 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
 
     if(orientation == FREE_FORM){
         Matrix4x4 trans = getTransformationMatrix(sliceParameters);
-        invoke_advanced_slice_kernel(m_sliceBuffer, bufferParameters, sliceParameters, trans);
+        invoke_advanced_slice_kernel(m_sliceBuffer, bufferParameters, trans);
 
     }else{
        invoke_slice_kernel(m_sliceBuffer, bufferParameters, sliceParameters, orientation);

@@ -5,6 +5,8 @@
 #include<iostream>
 #include<fstream>
 
+#include "cs123math/CS123Algebra.h"
+
 using namespace std;
 
 VolumeGenerator::VolumeGenerator(int x, int y, int z)
