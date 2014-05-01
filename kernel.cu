@@ -550,26 +550,36 @@ void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canoni
     if(j<bp.height && i<bp.width){
 
             float3 pos;
+            pos.x = 0;
+            pos.y = 0;
+            pos.z = 0;
+
+
+            // TODO: Account for rotation
+
+
+
+
 
             switch(c){
 
             case SAGITTAL:
-                pos.z = 0;
-                pos.y = ((float)j)/((float)bp.height);
-                pos.x = ((float)i)/((float)bp.width);
+                pos.z += 0;
+                pos.y += ((float)j)/((float)bp.height);
+                pos.x += ((float)i)/((float)bp.width);
                 break;
 
             case HORIZONTAL:
-                pos.z = ((float)i)/((float)bp.width);
-                pos.y = 0;
-                pos.x = ((float)j)/((float)bp.height);
+                pos.z += ((float)i)/((float)bp.width);
+                pos.y += 0;
+                pos.x += ((float)j)/((float)bp.height);
                 break;
 
 
             case CORONAL:
-                pos.z = ((float)i)/((float)bp.width);
-                pos.y = ((float)j)/((float)bp.height);
-                pos.x = 0;
+                pos.z += ((float)i)/((float)bp.width);
+                pos.y += ((float)j)/((float)bp.height);
+                pos.x += 0;
                 break;
             }
 
