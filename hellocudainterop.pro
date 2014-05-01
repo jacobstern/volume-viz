@@ -4,7 +4,8 @@ HEADERS       = glwidget.h \
     camera.h \
     volumegenerator.h \
     params.h \
-    slicewidget.h
+    slicewidget.h \
+    transfer_functions.h
 SOURCES       = glwidget.cpp \
                 main.cpp \
                 window.cpp \
