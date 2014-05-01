@@ -51,6 +51,7 @@
 #include "kernel.cuh"
 
 #include "params.h"
+#include "transfer_functions.h"
 
 using std::cout;
 using std::endl;
@@ -92,8 +93,8 @@ static inline float nrm( float glCoord )
 //! [0]
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
-      font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f), resolutionScale(4),
-      transferPreset(TRANSFER_PRESET_DEFAULT), phongShading(false), filterOutput(true), scaleObject(1.f, 1.f, 1.f)
+      font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f), resolutionScale(3),
+      transferPreset(TRANSFER_PRESET_DEFAULT), phongShading(true), filterOutput(true), scaleObject(1.f, 1.f, 1.f)
 {
     logo = 0;
 
@@ -193,6 +194,7 @@ void GLWidget::paintGL()
         QPainter frontFace(framebuffers[FRONT_FACE_BUFFER]);
 
         firstPass.bind();
+        firstPass.setUniformValue( "scale", scaleObject.x(), scaleObject.y(), scaleObject.z() );
 
         glClearColor( 0.f, 0.f, 0.f, 0.f );
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -206,6 +208,7 @@ void GLWidget::paintGL()
         QPainter backFace(framebuffers[BACK_FACE_BUFFER]);
 
         firstPass.bind();
+        firstPass.setUniformValue( "scale", scaleObject.x(), scaleObject.y(), scaleObject.z() );
 
         glClearColor( 0.f, 0.f, 0.f, 0.f );
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -381,7 +384,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
         hasCuttingPlane = false;
         renderingDirty  = true;
     }
-    else if (event->buttons() & Qt::RightButton) {
+    else if (event->buttons() & Qt::RightButton || event->buttons() & Qt::MiddleButton) {
         lastPos = event->pos();
     }
 }
@@ -617,32 +620,34 @@ void GLWidget::loadShaderProgram(QGLShaderProgram &program, QString name)
 
 void GLWidget::loadVolume(const char* path)
 {
-    cout << "Generating mock voltex" << endl;
+    cout << "Generating mock voltex from " << path << endl;
     m_volgen = new VolumeGenerator(0,0,0);
 
-    cout << "loading brain from file " << path << endl;
-    m_volgen->loadfrom_raw(path, true);
-    cout << "brain has been loaded from file" << endl;
+    float *transferFunction;
 
     if (QString(path).endsWith("engine.t3d")) {
-        transferPreset = TRANSFER_PRESET_ENGINE;
+        transferFunction = g_transferEngine;
         scaleObject = QVector3D(1.f, 1.f, 1.f);
     }
     else if (QString(path).endsWith("head.t3d")) {
-        transferPreset = TRANSFER_PRESET_MRI;
+        transferFunction = g_transferEngine;
         scaleObject = QVector3D(1.f, 1.f, 0.8f);
     }
-    else {
-        transferPreset = TRANSFER_PRESET_DEFAULT;
-        scaleObject = QVector3D(1.f, 1.f, 1.f);
+    else if (QString(path).endsWith("VisMale.t3d"))  {
+        transferFunction = g_transferHead;
+        scaleObject = QVector3D(1.57f, 1.f, 1.f);
     }
+
+    cout << "loading brain from file: " << path << endl;
+    m_volgen->loadfrom_raw(path, true);
+    cout << "brain has been loaded from file" << endl;
 
     size_t size;
     byte* texels = m_volgen->getBytes(size);
     cout << "size: " << size << endl;
 
     cout << "Loading mock voltex into CUDA" << endl;
-    cudaLoadVolume(texels, size, m_volgen->getDims(), &m_volumeArray);
+    cudaLoadVolume(texels, size, m_volgen->getDims(), transferFunction, &m_volumeArray);
     cout << "Mock voltex has been loaded into CUDA" << endl;
 
     delete m_volgen;

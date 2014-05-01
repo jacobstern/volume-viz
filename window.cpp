@@ -208,7 +208,7 @@ void Window::keyPressEvent(QKeyEvent *e)
 
 void Window::textureSelectionChanged(int idx)
 {
-    char* new_path = g_texture_paths[idx];
+    const char* new_path = g_texture_paths[idx];
     m_lineEdit->clear();
     m_lineEdit->insert(QString(new_path));
 
@@ -216,7 +216,7 @@ void Window::textureSelectionChanged(int idx)
 
 void Window::loadButtonClicked()
 {
-    const char* path = m_lineEdit->text().toUtf8().constData();
+    const char* path = m_lineEdit->text().toAscii().constData();
     glWidget->loadVolume(path);
 }
 

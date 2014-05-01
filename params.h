@@ -27,12 +27,12 @@
 #define SLICE_SLIDER_INIT 0
 
 
-static char *g_texture_names[N_DEFAULT_TEXTURES] = {"head",
+static const char *g_texture_names[N_DEFAULT_TEXTURES] = {"MRI head",
                                                   "engine",
-                                                    "monkey"};
-static char *g_texture_paths[N_DEFAULT_TEXTURES] = {"/home/rmartens/shared/cs224textures/head.t3d",
+                                                    "CT head"};
+static const char *g_texture_paths[N_DEFAULT_TEXTURES] = {"/home/rmartens/shared/cs224textures/head.t3d",
                                                  "/home/rmartens/shared/cs224textures/engine.t3d",
-                                                    "/home/rmartens/shared/cs224textures/monkey.t3d"};
+                                                    "/home/rmartens/shared/cs224textures/VisMale.t3d"};
 
 static char *g_savepath_default = "Save slice as:";
 

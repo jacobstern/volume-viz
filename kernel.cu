@@ -39,12 +39,16 @@ static struct cudaGraphicsResource *pixelBuffer, *texture0, *texture1;
 typedef texture<uchar4, cudaTextureType2D, cudaReadModeElementType> inTexture2D;
 inTexture2D inTexture0, inTexture1;
 
+typedef texture<float4, cudaTextureType1D, cudaReadModeElementType> inTexture1D;
+inTexture1D transferTexture;
+
 typedef unsigned char uchar;
 
 // volumetric texture
 texture<unsigned char, cudaTextureType3D, cudaReadModeNormalizedFloat> texVolume;
 
-cudaArray *devVolume = 0;
+cudaArray *devVolume   = 0;
+float     *devTransfer = 0;
 
 __device__
 float vectorLength(float3 vec)
@@ -113,33 +117,9 @@ float4 blend(float4 src, float4 dst) {
     return ret;
 }
 
-template<int _transferPreset>
 __device__
 float4 transferFunction(uchar sampled) {
-    float asFloat = ucharToFloat( sampled );
-
-    switch(_transferPreset) {
-
-    case TRANSFER_PRESET_ENGINE:
-
-        return make_float4( asFloat, asFloat, asFloat, clamp(asFloat * asFloat * 2.f, 0.f, 1.f) );
-
-    case TRANSFER_PRESET_MRI:
-        float adjusted;
-
-        if (asFloat < .3f)
-            adjusted = 0.f;
-        else {
-            float highlight   = 0.6,
-                  adjust      = 1.f - 12.f * fabs(highlight - asFloat);
-                  adjusted    = clamp( asFloat + adjust * .3, .1f, 1.f );
-
-        }
-
-        return make_float4( adjusted, adjusted, adjusted, adjusted  * 0.05);
-
-    }
-
+    return tex1Dfetch( transferTexture, sampled );
 }
 
 __device__
@@ -147,12 +127,13 @@ void rayMarch(unsigned char cache[],
               dim3   cacheIdx,
               dim3   cacheDim,
               float3 origin,
-              float3 direction) {
+              float3 direction,
+              float3 scale) {
     float3 pos  = origin,
            step = direction * STEP_SIZE;
 
     for (int i = 0; i < CACHE_DEPTH; ++i) {
-        uchar sampled = sample( pos );
+        uchar sampled = sample( (pos - .5) / scale + .5 );
 
         cache[ i * cacheDim.x * cacheDim.y + cacheIdx.y * cacheDim.x + cacheIdx.x ]
                 = sampled;
@@ -163,7 +144,7 @@ void rayMarch(unsigned char cache[],
     __syncthreads();
 }
 
-template<int _sliceType, int _transferPreset>
+template<int _sliceType>
 __device__
 float4 shadeVoxel(unsigned char sharedMemory[],
                   dim3 cacheIdx,
@@ -178,7 +159,7 @@ float4 shadeVoxel(unsigned char sharedMemory[],
     uchar sampled
              = getVoxel( sharedMemory, cacheIdx, cacheDim, offset );
 
-    float4 value = transferFunction<_transferPreset>( sampled );
+    float4 value = transferFunction( sampled );
 
     if ( phongShading && value.w > 1e-6 ) {
         float l, r, t, b, f, a;
@@ -219,7 +200,7 @@ float4 shadeVoxel(unsigned char sharedMemory[],
     return value;
 }
 
-template<int _sliceType, int _transferPreset>
+template<int _sliceType>
 __device__
 void mainLoop(uchar cache[],
               dim3 cacheIdx,
@@ -240,12 +221,13 @@ void mainLoop(uchar cache[],
            tanFovY = tan( camera.fovY * M_PI / (180.f * imageDim.y ) );
 
     float3 slicePoint  = make_float3( slice.params[0], slice.params[1], slice.params[2] ),
-           sliceNormal = make_float3( slice.params[3], slice.params[4], slice.params[5] );
+           sliceNormal = make_float3( slice.params[3], slice.params[4], slice.params[5] ),
+           scale       = make_float3( camera.scale[0], camera.scale[1], camera.scale[2] );
 
     while ( dist < upper ) { // No infinite loop plz
         float3 pos = origin + direction * dist;
 
-        rayMarch( cache, cacheIdx, cacheDim, pos, direction );
+        rayMarch( cache, cacheIdx, cacheDim, pos, direction, scale );
 
         for (int i = 1; i < CACHE_DEPTH - 1; ++i) {
             float voxelDist = i * STEP_SIZE + dist;
@@ -254,9 +236,9 @@ void mainLoop(uchar cache[],
                         tanFovY * ( voxelDist ),
                         STEP_SIZE * 2.f
                         ),
-                   voxelPos = origin + direction * voxelDist,
-                   scale    = make_float3( camera.scale[0], camera.scale[1], camera.scale[2] );
-            float4 shaded = shadeVoxel<_sliceType, _transferPreset>( cache, cacheIdx, cacheDim, i, voxelPos, voxelDim, slicePoint, sliceNormal, shading.phongShading );
+                   voxelPos = origin + direction * voxelDist;
+            // voxelPos = (voxelPos - .5f) * scale + .5f;
+            float4 shaded = shadeVoxel<_sliceType>( cache, cacheIdx, cacheDim, i, voxelPos, voxelDim, slicePoint, sliceNormal, shading.phongShading );
 
             if (shaded.w > 1e-6) {
                 result = blend( shaded, result );
@@ -271,7 +253,7 @@ void mainLoop(uchar cache[],
     }
 }
 
-template<int _sliceType, int _transferPreset>
+template<int _sliceType>
 __global__
 void kernel(void *buffer,
             int width,
@@ -346,7 +328,7 @@ void kernel(void *buffer,
          imageDim(width, height);
 
     float4 result;
-    mainLoop<_sliceType, _transferPreset>(sharedMemory, cacheIdx, cacheDim, imageDim, camera, slice, shading, pos, ray, upper, result);
+    mainLoop<_sliceType>(sharedMemory, cacheIdx, cacheDim, imageDim, camera, slice, shading, pos, ray, upper, result);
 
     if (!isBorder) {
         result.x = clamp(result.x, 0.f, 1.f);
@@ -395,6 +377,11 @@ void runCuda(int width,
     checkCudaErrors( cudaGraphicsSubResourceGetMappedArray(&array1, texture1, 0, 0) );
     checkCudaErrors( cudaBindTextureToArray(inTexture1, array1) );
 
+    transferTexture.normalized = false;
+
+    assert(devTransfer);
+    checkCudaErrors( cudaBindTexture( NULL, transferTexture, devTransfer, 1024 * sizeof(float) ) );
+
     void *devBuffer;
     size_t bufferSize;
     checkCudaErrors( cudaGraphicsResourceGetMappedPointer(&devBuffer, &bufferSize, pixelBuffer) );
@@ -415,43 +402,14 @@ void runCuda(int width,
 
     case SLICE_NONE:
 
-        switch( shading.transferPreset ) {
-
-        case TRANSFER_PRESET_ENGINE:
-
-            kernel< SLICE_NONE, TRANSFER_PRESET_ENGINE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
-
-            break;
-
-        case TRANSFER_PRESET_MRI:
-
-            kernel< SLICE_NONE, TRANSFER_PRESET_MRI    ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
-
-            break;
-
-        }
+        kernel< SLICE_NONE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
 
         break;
 
     case SLICE_PLANE:
 
-        switch( shading.transferPreset ) {
+        kernel< SLICE_PLANE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
 
-        case TRANSFER_PRESET_ENGINE:
-
-            kernel< SLICE_PLANE, TRANSFER_PRESET_ENGINE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
-
-            break;
-
-        case TRANSFER_PRESET_MRI:
-
-            kernel< SLICE_PLANE, TRANSFER_PRESET_MRI    ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading );
-
-            break;
-
-        }
-
-        break;
     }
 
 
@@ -462,7 +420,7 @@ void runCuda(int width,
 
 // load volumetric texture into the GPU
 void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
-                    cudaArray** volumeArray) {
+                    float transferFunction[1024], cudaArray** volumeArray) {
 
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<unsigned char>();
 
@@ -496,8 +454,10 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
 
     checkCudaErrors( cudaBindTextureToArray(texVolume, devVolume, channelDesc));
 
-
     cout << "texture array has been memcopied" << endl;
+
+    checkCudaErrors( cudaMalloc( &devTransfer, 1024 *  sizeof(float) ) );
+    checkCudaErrors( cudaMemcpy( devTransfer, transferFunction, 1024 * sizeof(float), cudaMemcpyHostToDevice) );
 
 }
 
