@@ -183,9 +183,19 @@ Window::Window()
         mainLayout->addWidget(leftColumnWidget);
 
         // RIGHT HALF OF THE MAIN WINDOW
-        glWidget = new GLWidget();
-        glWidget->setFixedSize(RENDER_SIZE, RENDER_SIZE);
-        mainLayout->addWidget(glWidget);
+        QVBoxLayout *rightLayout = new QVBoxLayout; {
+            glWidget = new GLWidget();
+            glWidget->setFixedSize(RENDER_SIZE, RENDER_SIZE);
+            rightLayout->addWidget(glWidget);
+
+            QHBoxLayout *debug0 = new QHBoxLayout; {
+                m_phongShading = new QCheckBox("Phong shading");
+                connect(m_phongShading, SIGNAL(clicked(bool)), glWidget, SLOT(setPhongShading(bool)) );
+                debug0->addWidget(m_phongShading);
+            }
+            rightLayout->addLayout(debug0);
+        }
+        mainLayout->addLayout(rightLayout);
 
     }
 

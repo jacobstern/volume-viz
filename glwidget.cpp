@@ -94,7 +94,7 @@ static inline float nrm( float glCoord )
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
       font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f), resolutionScale(3),
-      transferPreset(TRANSFER_PRESET_DEFAULT), phongShading(true), filterOutput(true), scaleObject(1.f, 1.f, 1.f)
+      transferPreset(TRANSFER_PRESET_DEFAULT), phongShading(false), filterOutput(true), scaleObject(1.f, 1.f, 1.f)
 {
     logo = 0;
 
