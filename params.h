@@ -21,10 +21,10 @@
 #define LEFT_COLUMN_HEIGHT 600
 
 
-static char *g_texture_names[N_DEFAULT_TEXTURES] = {"MRI head",
+static const char *g_texture_names[N_DEFAULT_TEXTURES] = {"MRI head",
                                                   "engine",
                                                     "CT head"};
-static char *g_texture_paths[N_DEFAULT_TEXTURES] = {"/home/rmartens/shared/cs224textures/head.t3d",
+static const char *g_texture_paths[N_DEFAULT_TEXTURES] = {"/home/rmartens/shared/cs224textures/head.t3d",
                                                  "/home/rmartens/shared/cs224textures/engine.t3d",
                                                     "/home/rmartens/shared/cs224textures/VisMale.t3d"};
 
