@@ -9,6 +9,8 @@
 
 #include "volumegenerator.h"
 
+#include "params.h"
+
 extern "C" {
 
 #define SLICE_NONE  -1
@@ -46,5 +48,15 @@ extern "C" {
     void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
                         cudaArray** volumeArray); // load volumetric texture
 }
+
+
+// ############## Robin's extra stuff for slicing
+void invoke_slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c);
+
+// NOTE: Perhaps pass in matrix format...
+__global__
+void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c);
+
+
 
 #endif

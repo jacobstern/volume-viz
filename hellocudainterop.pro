@@ -28,7 +28,10 @@ OTHER_FILES += kernel.cu \
     ui.frag \
     ui.vert \
     implicit.cu
+
+
 CUDA_SOURCES += kernel.cu
+
 
 # paths to cuda sdk on filesystem
 CUDA_SDK = /Developer/NVIDIA/CUDA-5.5/

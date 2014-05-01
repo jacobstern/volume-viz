@@ -69,6 +69,15 @@ public slots:
     void textureSelectionChanged(int);
     void loadButtonClicked();
 
+    void renderSlice(int value=0);
+
+//    void renderSliceButtonClicked();
+//    void printSliceButtonClicked();
+
+    void saveSliceButtonClicked();
+
+//    void canonicalSliceSliderChanged(int);
+
 protected:
     void keyPressEvent(QKeyEvent *event);
 
@@ -89,7 +98,21 @@ private:
     QComboBox* m_examples;
     QCheckBox* m_phongShading;
 
-//    QMap*    m_source_table;
+    QSlider**   m_sliceSliders;
+
+    QRadioButton** m_canonicalOrientationButtons;
+
+    QSlider* m_canonicalSliceSlider;
+
+    QPushButton* m_sliceSaveButton;
+
+    QGroupBox* m_canonicalOrientationBox;
+
+    QLineEdit* m_sliceSavePath;
+
+    QTabWidget* m_sliceTab;
+
+    QComboBox* m_fileFormats;
 
 
 };

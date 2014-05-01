@@ -53,13 +53,10 @@
 
 #include "camera.h"
 #include "volumegenerator.h"
+#include "params.h"
 
 
-
-class QtLogo;
-
-//! [0]
-class SliceWidget : public QGLWidget
+class SliceWidget : public QWidget
 {
     Q_OBJECT
 
@@ -67,65 +64,28 @@ public:
     SliceWidget(QWidget *parent = 0);
     ~SliceWidget();
 
-    QSize minimumSizeHint() const;
-    QSize sizeHint() const;
+//    QSize minimumSizeHint() const;
+//    QSize sizeHint() const;
 
-    void drawSomething();
+    void renderSlice(SliceParameters sliceParameters,
+                     BufferParameters bufferParameters,
+                     canonicalOrientation orientation);
 
-    const static int N_FRAMEBUFFERS = 2;
-//! [0]
+    void saveSliceAs(QString fileName);
 
-//! [2]
+    float* getSlice(size_t& height, size_t& width);
+
 protected:
-    void initializeGL();
-    void paintGL();
-    void resizeGL(int width, int height);
-    void mousePressEvent(QMouseEvent *event);
-    void mouseReleaseEvent(QMouseEvent *event);
-    void mouseMoveEvent(QMouseEvent *event);
-    void wheelEvent(QWheelEvent *event);
-//! [2]
+    virtual void paintEvent(QPaintEvent *);
 
-//! [3]
 private:
-    Camera *camera;
+    float* m_sliceBuffer = NULL;
+    size_t m_sizeX = 0;
+    size_t m_sizeY = 0;
 
-    bool didStartDragging, isDragging;
-    QVector2D dragStart, dragEnd;
-
-    bool hasCuttingPlane;
-    QVector3D cutPoint, cutNormal;
-
-    void drawProxyGeometry();
-    void drawTextureQuad();
-    void showDragUI();
-
-    void loadShaderProgram(QGLShaderProgram &program, QString name);
-
-    void loadVolume();
-
-    QtLogo *logo;
-    float scaleFactor;
-    QPoint lastPos;
-    QColor qtGreen;
-    QColor qtPurple;
-    GLuint resultBuffer, resultTexture;
-    QGLShaderProgram firstPass, screen, ui;
-    QGLFramebufferObject *framebuffers[SliceWidget::N_FRAMEBUFFERS];
-
-    QFont font; // font for rendering text
-
-    QMatrix4x4 perspective;
-    float fovX, fovY;
-
-    VolumeGenerator* m_volgen;
-
-    cudaArray* m_volumeArray;
-
-
-
+    QImage* m_sliceImage;
 
 };
-//! [3]
+
 
 #endif
