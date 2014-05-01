@@ -6,7 +6,9 @@ HEADERS       = glwidget.h \
     params.h \
     slicewidget.h \
     cs123math/CS123Algebra.h \
-    CS123Common.h
+    CS123Common.h \
+    transfer_functions.h
+
 SOURCES       = glwidget.cpp \
                 main.cpp \
                 window.cpp \

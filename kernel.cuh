@@ -30,7 +30,7 @@ extern "C" {
     struct camera_params {
         float origin[3];
         float fovX, fovY;
-        float inv1[3], inv2[3], inv3[3];
+        float scale[3];    // TODO: This probably shouldn't be a member of camera_params
     };
 
     struct shading_params {
