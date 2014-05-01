@@ -78,6 +78,9 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
                               BufferParameters bufferParameters,
                               canonicalOrientation orientation)
 {
+    cout << "SliceWidget::renderSlice: " << sliceParameters << endl;
+
+
     if(bufferParameters.height*bufferParameters.width != m_sizeY*m_sizeX){
         cout << "allocating new slice buffer" << endl;
         delete[] m_sliceBuffer;

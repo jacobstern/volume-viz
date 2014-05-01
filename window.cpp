@@ -147,6 +147,16 @@ Window::Window()
                         QWidget* sliceSliderWidget = new QWidget();
                         sliceSliderWidget->setLayout(sliceSliderBox);
                         m_sliceTab->addTab(sliceSliderWidget, "Pro");
+
+
+                        QVBoxLayout* freeSliceBox = new QVBoxLayout();{
+                            freeSliceBox->addWidget(new QLabel("Please click and drag\nwith the left mouse button\n\n \
+                                                               Click and drag the mouse wheel to move the plane "));
+                        }
+                        QWidget* freeSliceWidget = new QWidget();
+                        freeSliceWidget->setLayout(freeSliceBox);
+                        m_sliceTab->addTab(freeSliceWidget, "Free");
+
                     }
                     sliceBox->addWidget(m_sliceTab);
                 }
@@ -296,7 +306,10 @@ void Window::renderSlice(int value)
     m_sliceWidget->renderSlice(sliceParameters, bufferParameters, orientation);
 }
 
-
+void Window::updateSlicePlane(Vector4 cutPoint, Vector4 cutNormal)
+{
+    cout << "Window::updateSlicePlane: " << cutPoint << ", " << cutNormal << endl;
+}
 
 
 

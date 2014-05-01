@@ -43,6 +43,8 @@
 
 #include <QWidget>
 #include "slicewidget.h"
+#include "CS123Common.h"
+#include "cs123math/CS123Algebra.h"
 
 // ###########################################
 #include <QLineEdit>
@@ -74,6 +76,8 @@ public slots:
 //    void printSliceButtonClicked();
 
     void saveSliceButtonClicked();
+
+    void updateSlicePlane(Vector4 cutPoint, Vector4 cutNormal);
 
 //    void canonicalSliceSliderChanged(int);
 
@@ -112,7 +116,6 @@ private:
     QTabWidget* m_sliceTab;
 
     QComboBox* m_fileFormats;
-
 
 };
 //! [0]
