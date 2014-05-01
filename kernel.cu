@@ -228,6 +228,23 @@ void mainLoop(uchar cache[],
     float3  scaledDirection = direction * step;
     float   scaledStep      = vectorLength( scaledDirection );
 
+    float3  front = origin,
+            back = origin + direction * upper;
+
+    if (_sliceType == SLICE_PLANE_CUT) {
+        if ( signedDistancePlane(slicePoint, sliceNormal, front) < 1e-6 &&
+             signedDistancePlane(slicePoint, sliceNormal, back)  < 1e-6 ) {
+            return;
+        }
+
+        float t;
+        if ( intersectPlaneAndRay(slicePoint, sliceNormal, origin, direction, t) ) {
+            dist   = t;
+        } else if ( intersectPlaneAndRay(slicePoint, sliceNormal, back, direction * -1.f, t) ) {
+            upper -= t;
+        }
+    }
+
     while ( dist < upper ) { // No infinite loop plz
         float3 pos = origin + direction * dist;
 
@@ -235,13 +252,17 @@ void mainLoop(uchar cache[],
 
         for (int i = 1; i < CACHE_DEPTH - 1; ++i) {
             float voxelDist = i * scaledStep + dist;
+            if (voxelDist > upper) {
+                break;
+            }
+
             float3 voxelDim = make_float3(
                         tanFovX * ( voxelDist ),
                         tanFovY * ( voxelDist ),
                         scaledStep * 2.f
                         ),
                    voxelPos = origin + direction * voxelDist;
-            // voxelPos = (voxelPos - .5f) * scale + .5f;
+\
             float4 shaded = shadeVoxel<_sliceType>( cache, cacheIdx, cacheDim, i, voxelPos, voxelDim, slicePoint, sliceNormal, shading.phongShading );
 
             if (shaded.w > 1e-6) {
@@ -416,6 +437,12 @@ void runCuda(int width,
     case SLICE_PLANE:
 
         kernel< SLICE_PLANE ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading, step );
+
+        break;
+
+    case SLICE_PLANE_CUT:
+
+        kernel< SLICE_PLANE_CUT ><<< blockDims, blockSize, sharedMemSize >>>( devBuffer, width, height, camera, slice, shading, step );
 
     }
 

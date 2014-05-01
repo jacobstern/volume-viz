@@ -225,7 +225,7 @@ void GLWidget::paintGL()
     struct slice_params sliceParams;
 
     if (hasCuttingPlane) {
-        sliceParams.type = SLICE_PLANE;
+        sliceParams.type = SLICE_PLANE_CUT;
 
         sliceParams.params[0] = cutPoint.x();
         sliceParams.params[1] = cutPoint.y();

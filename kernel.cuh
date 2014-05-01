@@ -13,8 +13,9 @@
 
 extern "C" {
 
-#define SLICE_NONE  -1
-#define SLICE_PLANE  0
+#define SLICE_NONE      -1
+#define SLICE_PLANE      0
+#define SLICE_PLANE_CUT  1
 
 #define TRANSFER_PRESET_DEFAULT -1
 #define TRANSFER_PRESET_ENGINE   0
