@@ -14,7 +14,7 @@
 
 #define SLICE_EDGELENGTH 256
 
-#define N_DEFAULT_TEXTURES 3
+#define N_DEFAULT_TEXTURES 2
 
 #define SLICE_SIZE 256
 #define RENDER_SIZE 512
@@ -28,11 +28,9 @@
 
 
 static const char *g_texture_names[N_DEFAULT_TEXTURES] = {"MRI head",
-                                                  "engine",
-                                                    "CT head"};
+                                                  "Engine"};
 static const char *g_texture_paths[N_DEFAULT_TEXTURES] = {"/home/rmartens/shared/cs224textures/head.t3d",
-                                                 "/home/rmartens/shared/cs224textures/engine.t3d",
-                                                    "/home/rmartens/shared/cs224textures/VisMale.t3d"};
+                                                 "/home/rmartens/shared/cs224textures/engine.t3d"};
 
 static char *g_savepath_default = "Save slice as:";
 

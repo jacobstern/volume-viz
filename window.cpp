@@ -274,7 +274,7 @@ Window::Window()
                     connect(m_slicingButtons[i], SIGNAL(clicked(bool)), this, SLOT(updateSliceVisualization()));
                 }
             }
-            m_slicingButtons[SLICE_VIS_NONE]->setChecked(true);
+            m_slicingButtons[SLICE_VIS_LASER]->setChecked(true);
 
             m_slicingBox->setLayout(radioLayout);
             radioLayout->setAlignment(Qt::AlignLeft);
@@ -410,6 +410,12 @@ void Window::renderSlice(int value)
 
 void Window::updateSlicePlane(Vector4 cutPoint, Vector4 cutNormal)
 {
+    m_sliceTab->setCurrentIndex(2);
+    for(int i=0; i<N_SLICE_VISUALIZATIONS; i++){
+        if (i == glWidget->currentSliceVisualisation) {
+            m_slicingButtons[i]->setChecked(true);
+        }
+    }
 //    cout << "Window::updateSlicePlane: " << cutPoint << ", " << cutNormal << endl;
 
 //    m_point = cutPoint;
@@ -438,5 +444,21 @@ void Window::updateSliceVisualization()
 
 
 
+void Window::setCanonicalOffset(float offset)
+{
+    int value = offset * SLICE_EDGELENGTH;
 
+
+    m_canonicalSliceSlider->setValue(m_canonicalSliceSlider->value() +  value);
+
+//    for(int i=0; i<N_CANONICAL_ORIENTATIONS; i++){
+//        if(m_canonicalOrientationButtons[i]->isChecked()){
+//            orientation = (canonicalOrientation)i;
+//            break;
+//        }
+//    }
+
+//    cerr << offset << endl;
+//    cerr << value << endl;
+}
 

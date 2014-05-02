@@ -82,6 +82,8 @@ public slots:
 
     void updateSliceVisualization();
 
+    void setCanonicalOffset(float offset);
+
 
 //    void canonicalSliceSliderChanged(int);
 

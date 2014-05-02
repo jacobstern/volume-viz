@@ -62,6 +62,8 @@ class GLWidget : public QGLWidget
 {
     Q_OBJECT
 
+    friend class Window;
+
 public:
     GLWidget(QWidget *parent = 0);
     ~GLWidget();
@@ -98,10 +100,14 @@ protected:
 private:
     Camera *camera;
 
+
+    canonicalOrientation lastCanonicalOrientation;
+
     bool didStartDragging, isDragging;
     QVector2D dragStart, dragEnd;
 
     bool hasCuttingPlane;
+    bool hasPlaneFromImage;
     QVector3D cutPoint, cutNormal, cutUp, cutRight;
 
     sliceVisualization currentSliceVisualisation;
