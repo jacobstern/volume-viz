@@ -739,6 +739,20 @@ void GLWidget::invertCrossSection()
     update();
 }
 
+void GLWidget::setSlicePro(Vector3 offset, Vector3 normal)
+{
+    if (currentSliceVisualisation != SLICE_VIS_NONE) {
+        flipCrossSection = false;
+        cutNormal = QVector3D(normal.x, normal.y, normal.z);
+        cutPoint = QVector3D(offset.x, offset.y, offset.z);
+        hasCuttingPlane = true;
+        hasPlaneFromImage = false;
+
+        renderingDirty = true;
+        update();
+    }
+}
+
 void GLWidget::setSliceCanonical(canonicalOrientation orientation, float displace)
 {
     lastCanonicalOrientation = orientation;

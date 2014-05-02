@@ -90,6 +90,10 @@ public slots:
 
     void onProReturnPressed();
 
+    void onFreeReturnPressed();
+
+    void updatePlaneParams();
+
 
 //    void canonicalSliceSliderChanged(int);
 
@@ -128,7 +132,8 @@ private:
 
     QTabWidget* m_sliceTab;
 
-    QComboBox* m_fileFormats;
+    QComboBox* m_fileFormats;//        cout << "dx: " << dx << ", dy: " << dy << ", dz: " << dz << ", theta: " << theta << ", phi: " << phi << ", psi: " << psi << endl;
+
 
 
     Vector4 m_point;
@@ -140,6 +145,9 @@ private:
 
     NumberEdit** m_proNumberEdits;
     NumberEdit** m_numberEdits;
+
+    Vector3 m_offsets;
+    Vector3 m_angles;
 
 
 

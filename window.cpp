@@ -377,7 +377,7 @@ void Window::renderSlice(int value)
 
     // TODO: Get active tab
 
-    if(m_sliceTab->currentIndex() == 0){
+    if(m_sliceTab->currentIndex() == CANONICAL_SLICING){
 
         switch(orientation) {
 
@@ -401,7 +401,7 @@ void Window::renderSlice(int value)
             assert(false);
         }
 
-    }else if(m_sliceTab->currentIndex() == 1){
+    }else if(m_sliceTab->currentIndex() == PRO_SLICING){
 
         dx = ((float)m_sliceSliders[0]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2;
         dy = ((float)m_sliceSliders[1]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2;
@@ -410,8 +410,6 @@ void Window::renderSlice(int value)
         theta = ((float)m_sliceSliders[3]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2 * M_PI;
         phi = ((float)m_sliceSliders[4]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2 * M_PI;
         psi = ((float)m_sliceSliders[5]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2 * M_PI;
-
-//        cout << "dx: " << dx << ", dy: " << dy << ", dz: " << dz << ", theta: " << theta << ", phi: " << phi << ", psi: " << psi << endl;
 
         orientation = FREE_FORM;
 
@@ -423,38 +421,29 @@ void Window::renderSlice(int value)
         m_proNumberEdits[4]->displayRadiansAsDegrees(phi);
         m_proNumberEdits[5]->displayRadiansAsDegrees(psi);
 
+        Vector4 offset = Vector4(dx, dy, dz, 0);
+        offset += Vector4(0.5, 0.5, 0.5, 0);
+
+        Matrix4x4 trans = getTransMat(Vector4(0.5,0.5,0.5,1.0));
+        Matrix4x4 rotX = getRotXMat(theta);
+        Matrix4x4 rotY = getRotYMat(phi);
+        Matrix4x4 rotZ = getRotZMat(psi);
+        Matrix4x4 transBack = getTransMat(Vector4(-0.5,-0.5,-0.5,1.0));
+        Vector4 normal = trans * rotX * rotY * rotZ * transBack * Vector4(0, 0, 1, 0);
+
+        glWidget->setSlicePro(Vector3(offset.x, offset.y, offset.z), Vector3(normal.x, normal.y, normal.z));
+
+
     }else if(m_sliceTab->currentIndex() == 2){
-        Vector4 origin(.5, .5, .5, 1);
 
-//        Vector4 origin = Vector4::zero();
+        dx = m_offsets.x;
+        dy = m_offsets.y;
+        dz = m_offsets.z;
 
-        Vector4 center = origin - (origin - m_point).dot(m_normal) * m_normal;
+        theta = m_angles.x;
+        phi = m_angles.y;
+        psi = m_angles.z;
 
-        cerr << center << endl;
-
-        center -= origin;
-
-        dx = center.x;
-        dy = center.y;
-        dz = center.z;
-
-        // idea: Just take the dot products
-        theta = acos(m_normal.x);
-        phi = acos(m_normal.y);
-        psi = acos(m_normal.z);
-
-        #ifdef FREE_SLICING_ENABLED
-        m_numberEdits[0]->displayFloat(dx);
-        m_numberEdits[1]->displayFloat(dy);
-        m_numberEdits[2]->displayFloat(dz);
-
-        m_numberEdits[3]->displayFloat(theta);
-        m_numberEdits[4]->displayFloat(phi);
-        m_numberEdits[5]->displayFloat(psi);
-        #endif
-
-
-//        cout << "dx: " << dx << ", dy: " << dy << ", dz: " << dz << ", theta: " << theta << ", phi: " << phi << ", psi: " << psi << endl;
 
     }else{
         cerr << "ERROR: Invalid index for slice tab" << endl;
@@ -570,4 +559,73 @@ void Window::onProReturnPressed()
 
         cout << "new value: " << m_sliceSliders[i]->value() << endl;
     }
+}
+
+
+void Window::onFreeReturnPressed()
+{
+    cout << "Return pressed!" << endl;
+
+    for(int i=0; i<N_SLICE_SLIDERS; i++){
+        QString text = m_proNumberEdits[i]->text();
+        cout << "text edit " << i << ": " << text.toStdString();
+
+
+        float num = text.toFloat();
+
+        if(i>=3){
+            num /= 180.0;
+        }
+
+        if(num < SLICE_SLIDER_MIN || num > SLICE_SLIDER_MAX){
+            num = SLICE_SLIDER_INIT;
+        }
+
+        cout << "num: " << num << endl;
+        int newval = (int)(num * ((float)(SLICE_SLIDER_MAX - SLICE_SLIDER_MIN))/2);
+        cout << "newval: " << newval << endl;
+
+
+        if(i<3){
+            m_offsets.data[i] = num;
+
+        }else{
+            m_angles.data[i%3] = num;
+        }
+
+    }
+}
+
+
+void Window::updatePlaneParams()
+{
+    Vector4 origin(.5, .5, .5, 1);
+
+//        Vector4 origin = Vector4::zero();
+
+    Vector4 center = origin - (origin - m_point).dot(m_normal) * m_normal;
+
+    cerr << center << endl;
+
+    center -= origin;
+
+    m_offsets.x = center.x;
+    m_offsets.y = center.y;
+    m_offsets.z = center.z;
+
+    // idea: Just take the dot products
+    m_angles.x = acos(m_normal.x);
+    m_angles.x = acos(m_normal.y);
+    m_angles.x = acos(m_normal.z);
+
+
+    #ifdef FREE_SLICING_ENABLED
+    m_numberEdits[0]->displayFloat(m_offsets.x);
+    m_numberEdits[1]->displayFloat(m_offsets.y);
+    m_numberEdits[2]->displayFloat(m_offsets.z);
+
+    m_numberEdits[3]->displayFloat(m_angles.x);
+    m_numberEdits[4]->displayFloat(m_angles.y);
+    m_numberEdits[5]->displayFloat(m_angles.z);
+    #endif
 }

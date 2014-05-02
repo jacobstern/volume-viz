@@ -82,6 +82,7 @@ public slots:
     void setSliceVisualization(sliceVisualization);
     void invertCrossSection();
     void setSliceCanonical(canonicalOrientation orientation, float displace);
+    void setSlicePro(Vector3 offset, Vector3 normal);
 
 //! [2]
 protected:
