@@ -96,7 +96,7 @@ static inline float nrm( float glCoord )
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
       font("Deja Vu Sans Mono", 8, 4), fovX(0.f), fovY(0.f), resolutionScale(3),
-      transferPreset(TRANSFER_PRESET_DEFAULT), phongShading(true), filterOutput(true), scaleObject(1.f, 1.f, 1.f)
+      transferPreset(TRANSFER_PRESET_DEFAULT), phongShading(false), filterOutput(true), scaleObject(1.f, 1.f, 1.f)
 {
     logo = 0;
 
@@ -227,7 +227,7 @@ void GLWidget::paintGL()
     struct slice_params sliceParams;
 
     if (hasCuttingPlane) {
-        sliceParams.type = SLICE_PLANE;
+        sliceParams.type = SLICE_PLANE_CUT;
 
         sliceParams.params[0] = cutPoint.x();
         sliceParams.params[1] = cutPoint.y();
@@ -470,6 +470,9 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         p.setX( nrm( p.x() ) );
         p.setY( nrm( p.y() ) );
         p.setZ( nrm( p.z() ) );
+
+        if (n.y() > 1e-6)
+            n = -n;
 
         hasCuttingPlane = true;
         renderingDirty  = true;

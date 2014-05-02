@@ -35,7 +35,13 @@ bool intersectSphereAndRay(float3 p0, float r, float3 l0, float3 l, float &t)
 }
 
 __device__
+float signedDistancePlane(float3 p0, float3 n, float3 p)
+{
+    return dot( n, (p - p0) );
+}
+
+__device__
 float distanceToPlane(float3 p0, float3 n, float3 p)
 {
-    return fabs(dot(n, (p - p0)));
+    return fabs( signedDistancePlane(p0, n, p) );
 }
