@@ -70,7 +70,7 @@ public slots:
     void textureSelectionChanged(int);
     void loadButtonClicked();
 
-    void renderSlice(int value=0);
+    void renderSlice();
 
 //    void renderSliceButtonClicked();
 //    void printSliceButtonClicked();

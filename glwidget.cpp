@@ -705,6 +705,7 @@ void GLWidget::loadVolume(const char* path)
     renderingDirty  = true;
     hasCuttingPlane = false;
 
+    ((Window*)parentWidget())->renderSlice();
     update();
 }
 
