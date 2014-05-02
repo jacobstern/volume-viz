@@ -168,10 +168,10 @@ Window::Window()
                                 }
                                 QWidget* displayWidget = new QWidget();
                                 displayWidget->setLayout(sliderDisplays);
-//                                displayWidget->setFixedWidth(60);
-
+                                displayWidget->setFixedWidth(50);
                                 sliceSliderSubBox->addWidget(displayWidget, 0, 12, 1, 2);
                             }
+
                             sliceSliderBox->addLayout(sliceSliderSubBox);
                         }
 
