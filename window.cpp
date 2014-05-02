@@ -181,7 +181,7 @@ Window::Window()
                                         m_proNumberEdits[i] = new NumberEdit();
                                         sliderDisplays->addWidget(m_proNumberEdits[i]);
                                         m_proNumberEdits[i]->displayInteger(SLICE_SLIDER_INIT);
-//                                      connect(m_sliceSliders[i], SIGNAL(valueChanged(int)), numberEdit, SLOT(displayInteger(int)));
+                                        connect(m_proNumberEdits[i], SIGNAL(returnPressed()), this, SLOT(onProReturnPressed()));
                                     }
                                 }
                                 QWidget* displayWidget = new QWidget();
@@ -411,7 +411,7 @@ void Window::renderSlice(int value)
         phi = ((float)m_sliceSliders[4]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2 * M_PI;
         psi = ((float)m_sliceSliders[5]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2 * M_PI;
 
-        cout << "dx: " << dx << ", dy: " << dy << ", dz: " << dz << ", theta: " << theta << ", phi: " << phi << ", psi: " << psi << endl;
+//        cout << "dx: " << dx << ", dy: " << dy << ", dz: " << dz << ", theta: " << theta << ", phi: " << phi << ", psi: " << psi << endl;
 
         orientation = FREE_FORM;
 
@@ -538,12 +538,36 @@ void Window::setCanonicalOffset(float offset)
 
 void Window::onResetView()
 {
-    cout << "Reset view!" << endl;
-
     for(int i=0; i<N_SLICE_SLIDERS; i++){
         m_sliceSliders[i]->setValue(SLICE_SLIDER_INIT);
     }
-
-
 }
 
+
+void Window::onProReturnPressed()
+{
+    cout << "Return pressed!" << endl;
+
+    for(int i=0; i<N_SLICE_SLIDERS; i++){
+        QString text = m_proNumberEdits[i]->text();
+        cout << "text edit " << i << ": " << text.toStdString();
+
+
+        float num = text.toFloat();
+
+        if(i>=3){
+            num /= 180.0;
+        }
+
+        if(num < SLICE_SLIDER_MIN || num > SLICE_SLIDER_MAX){
+            num = SLICE_SLIDER_INIT;
+        }
+
+        cout << "num: " << num << endl;
+        int newval = (int)(num * ((float)(SLICE_SLIDER_MAX - SLICE_SLIDER_MIN))/2);
+        cout << "newval: " << newval << endl;
+        m_sliceSliders[i]->setValue(newval);
+
+        cout << "new value: " << m_sliceSliders[i]->value() << endl;
+    }
+}

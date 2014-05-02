@@ -88,6 +88,8 @@ public slots:
 
     void onResetView();
 
+    void onProReturnPressed();
+
 
 //    void canonicalSliceSliderChanged(int);
 
