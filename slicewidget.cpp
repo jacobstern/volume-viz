@@ -76,7 +76,8 @@ SliceWidget::~SliceWidget()
 
 void SliceWidget::renderSlice(SliceParameters sliceParameters,
                               BufferParameters bufferParameters,
-                              canonicalOrientation orientation)
+                              canonicalOrientation orientation,
+                              float3 scale)
 {
     cout << "SliceWidget::renderSlice: " << sliceParameters << endl;
 
@@ -92,7 +93,7 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
 
     if(orientation == FREE_FORM){
         Matrix4x4 trans = getTransformationMatrix(sliceParameters);
-        invoke_advanced_slice_kernel(m_sliceBuffer, bufferParameters, trans);
+        invoke_advanced_slice_kernel(m_sliceBuffer, bufferParameters, trans, scale);
 
 
         // print a few examples
@@ -104,7 +105,7 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
 
 
     }else{
-       invoke_slice_kernel(m_sliceBuffer, bufferParameters, sliceParameters, orientation);
+       invoke_slice_kernel(m_sliceBuffer, bufferParameters, sliceParameters, orientation, scale);
     }
 
     cout << "Updating slice image" << endl;

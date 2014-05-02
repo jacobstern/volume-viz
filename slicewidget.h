@@ -71,7 +71,8 @@ public:
 
     void renderSlice(SliceParameters sliceParameters,
                      BufferParameters bufferParameters,
-                     canonicalOrientation orientation);
+                     canonicalOrientation orientation,
+                     float3 scale);
 
     void saveSliceAs(QString fileName);
 

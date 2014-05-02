@@ -404,7 +404,12 @@ void Window::renderSlice(int value)
     SliceParameters sliceParameters(dx, dy, dz, theta, phi, psi);
     BufferParameters bufferParameters(height, width);
 
-    m_sliceWidget->renderSlice(sliceParameters, bufferParameters, orientation);
+    float3 scale;
+    scale.x = glWidget->scaleObject.x();
+    scale.y = glWidget->scaleObject.y();
+    scale.z = glWidget->scaleObject.z();
+
+    m_sliceWidget->renderSlice(sliceParameters, bufferParameters, orientation, scale);
 }
 
 
