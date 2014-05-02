@@ -127,7 +127,7 @@ Window::Window()
                                     m_canonicalSliceSlider->setValue(100);
                                     canonicalWrapperBox->addWidget(m_canonicalSliceSlider);
                                     NumberEdit* canonicalEdit = new NumberEdit();
-                                    canonicalEdit->displayInteger(SLICE_SLIDER_INIT);
+                                    canonicalEdit->displayInteger(100);
                                     canonicalWrapperBox->addWidget(canonicalEdit);
                                     canonicalEdit->setFixedWidth(80);
                                     connect(m_canonicalSliceSlider, SIGNAL(valueChanged(int)), canonicalEdit, SLOT(displayInteger(int)));
@@ -232,9 +232,10 @@ Window::Window()
                         QWidget* freeSliceWidget = new QWidget();
                         freeSliceWidget->setLayout(freeSliceWrapper);
                         m_sliceTab->addTab(freeSliceWidget, "Free");
-
-                        m_sliceTab->setCurrentIndex(FREE_SLICING);
 #endif
+                        connect(m_sliceTab, SIGNAL(currentChanged(int)), this, SLOT(renderSlice()));
+                        m_sliceTab->setCurrentIndex(0);
+
 
                     }
                     sliceBox->addWidget(m_sliceTab);
@@ -354,7 +355,7 @@ void Window::saveSliceButtonClicked()
     m_sliceWidget->saveSliceAs(m_sliceSavePath->text());
 }
 
-void Window::renderSlice(int value)
+void Window::renderSlice()
 {
     // TODO: get specifications
     float dx = 0.0;
@@ -484,7 +485,7 @@ void Window::updateSlicePlane(Vector4 cutPoint, Vector4 cutNormal)
     m_normal = cutNormal;
 
 //    m_sliceTab->setCurrentIndex(2);
-    renderSlice(0);
+    renderSlice();
 }
 
 
