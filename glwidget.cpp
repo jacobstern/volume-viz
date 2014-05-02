@@ -115,11 +115,12 @@ GLWidget::GLWidget(QWidget *parent)
 
     didStartDragging = false;
     isDragging = false;
+    hasPlaneFromImage = false;
     hasCuttingPlane = false;
 
     renderingDirty = true;
 
-    currentSliceVisualisation = SLICE_VIS_NONE;
+    currentSliceVisualisation = SLICE_VIS_LASER;
 
     flipCrossSection = false;
 }
@@ -446,12 +447,24 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
         renderingDirty = true;
     } else if (event->buttons() & Qt::MiddleButton && hasCuttingPlane) {
-        cutPoint = cutPoint + cutRight * dx / ( width()  ) * 3.5;
-        cutPoint = cutPoint + cutUp    * dy / ( height() ) * 3.5;
+        if (hasPlaneFromImage) {
+            cutPoint = cutPoint + cutRight * dx / ( width()  ) * 3.5;
+            cutPoint = cutPoint + cutUp    * dy / ( height() ) * 3.5;
 
-        renderingDirty = true;
+            renderingDirty = true;
 
-        onUpdateSlicePlane();
+            onUpdateSlicePlane();
+        }
+        else {
+            float translateX = dx / ((float) width()  ),
+                  translateY = dy / ((float) height() );
+            if (lastCanonicalOrientation == HORIZONTAL)
+                ((Window*)parentWidget())->setCanonicalOffset(-translateY );
+            else if (lastCanonicalOrientation == SAGITTAL)
+                ((Window*)parentWidget())->setCanonicalOffset(translateX );
+            else
+                ((Window*)parentWidget())->setCanonicalOffset(-translateX );
+        }
     }
 
 
@@ -509,14 +522,13 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         isDragging = false;
         didStartDragging = false;
 
-        if (currentSliceVisualisation != SLICE_VIS_NONE) {
-            hasCuttingPlane = true;
-            renderingDirty  = true;
+        hasCuttingPlane = true;
+        hasPlaneFromImage = true;
+        renderingDirty  = true;
 
-            flipCrossSection = false;
+        flipCrossSection = false;
 
-            onUpdateSlicePlane();
-        }
+        onUpdateSlicePlane();
     }
 
     update();
@@ -698,6 +710,10 @@ void GLWidget::loadVolume(const char* path)
 
 void GLWidget::onUpdateSlicePlane()
 {
+    if (currentSliceVisualisation == SLICE_VIS_NONE) {
+        currentSliceVisualisation = SLICE_VIS_LASER;
+    }
+
     Vector4 point = Vector4();
     point.x = cutPoint.x();
     point.y = cutPoint.y();
@@ -725,6 +741,8 @@ void GLWidget::invertCrossSection()
 
 void GLWidget::setSliceCanonical(canonicalOrientation orientation, float displace)
 {
+    lastCanonicalOrientation = orientation;
+
     if (currentSliceVisualisation != SLICE_VIS_NONE) {
         flipCrossSection = false;
 
@@ -748,8 +766,8 @@ void GLWidget::setSliceCanonical(canonicalOrientation orientation, float displac
         }
 
         hasCuttingPlane = true;
+        hasPlaneFromImage = false;
 
         renderingDirty = true;
-        update();
-    }
+        update();    }
 }

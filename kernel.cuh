@@ -56,16 +56,16 @@ extern "C" {
 
 
 // ############## Robin's extra stuff for slicing
-void invoke_slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c);
+void invoke_slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c, float3 scale);
 
-void invoke_advanced_slice_kernel(float *buffer, BufferParameters bp, Matrix4x4 trans);
+void invoke_advanced_slice_kernel(float *buffer, BufferParameters bp, Matrix4x4 trans, float3 scale);
 
 // NOTE: Perhaps pass in matrix format...
 __global__
-void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c);
+void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c, float3 scale);
 
 __global__
-void advanced_slice_kernel(float *buffer, BufferParameters bp, REAL* trans);
+void advanced_slice_kernel(float *buffer, BufferParameters bp, REAL* trans, float3 scale);
 
 
 
