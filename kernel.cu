@@ -600,22 +600,14 @@ void advanced_slice_kernel(float *buffer, BufferParameters bp, REAL* trans)
         float4 raw;
         raw.x = ((float)i)/((float)bp.width);
         raw.y = ((float)j)/((float)bp.height);
-        raw.z = 0;
+        raw.z = 0.5;
         raw.w = 1;
 
         float4 pos;
-//        pos.x = raw.x * trans[0] + raw.y * trans[4] + raw.z * trans[8] + raw.w * trans[12];
-//        pos.y = raw.x * trans[1] + raw.y * trans[5] + raw.z * trans[9] + raw.w * trans[13];
-//        pos.z = raw.x * trans[2] + raw.y * trans[6] + raw.z * trans[10] + raw.w * trans[14];
-
-//        pos.x += trans[3]
 
         pos.x = trans[0]*raw.x + trans[1]*raw.y + trans[2]*raw.z + trans[3]*raw.w;
         pos.y = trans[4]*raw.x + trans[5]*raw.y + trans[6]*raw.z + trans[7]*raw.w;
         pos.z = trans[8]*raw.x + trans[9]*raw.y + trans[10]*raw.z + trans[11]*raw.w;
-
-
-
 
 
         float sample;
