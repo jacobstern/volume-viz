@@ -37,11 +37,11 @@ static const char *g_texture_paths[N_DEFAULT_TEXTURES] = {"/home/rmartens/shared
 
 static char *g_savepath_default = "Save slice as:";
 
-//static char* g_slice_slider_captions[N_SLICE_SLIDERS] = {"x offset", "y offset", "z offset",
-//                                                         "x rotation", "y rotation", "z rotation"};
+static char* g_slice_slider_captions[N_SLICE_SLIDERS] = {"x offset", "y offset", "z offset",
+                                                         "x rotation", "y rotation", "z rotation"};
 
-static char* g_slice_slider_captions[N_SLICE_SLIDERS] = {"dx", "dy", "dz",
-                                                         "theta", "phi", "psi"};
+//static char* g_slice_slider_captions[N_SLICE_SLIDERS] = {"dx", "dy", "dz",
+//                                                         "theta", "phi", "psi"};
 
 typedef enum{ HORIZONTAL, SAGITTAL, CORONAL, N_CANONICAL_ORIENTATIONS, FREE_FORM} canonicalOrientation;
 static char* g_canonical_orientation_captions[N_CANONICAL_ORIENTATIONS] = {"horizontal", "sagittal", "coronal"};
