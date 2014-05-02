@@ -1,7 +1,7 @@
 #ifndef PARAMS_H
 #define PARAMS_H
 
-//#define FREE_SLICING_ENABLED
+#define FREE_SLICING_ENABLED
 
 #include "output.h"
 
