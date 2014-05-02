@@ -15,6 +15,8 @@ signals:
 public slots:
     void displayInteger(int num);
     void displayFloat(float num);
+
+    void displayRadiansAsDegrees(float radians);
 };
 
 #endif // NUMBEREDIT_H

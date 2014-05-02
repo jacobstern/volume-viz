@@ -146,29 +146,34 @@ Window::Window()
                         QVBoxLayout* sliceSliderBox = new QVBoxLayout();{
                             QLabel* sliceSliderLabel = new QLabel("Slicer");
 
-                            QGridLayout* sliceSliderSubBox = new QGridLayout();{
+
+                            QHBoxLayout* sliceSliderSubBox = new QHBoxLayout();{
 
                                 sliceSliderBox->addWidget(sliceSliderLabel);
                                 m_sliceSliders = new QSlider*[N_SLICE_SLIDERS];
 
 
+                                QVBoxLayout* proLabels = new QVBoxLayout();{
+                                    for(int i=0; i<N_SLICE_SLIDERS; i++){
+                                        proLabels->addWidget(new QLabel(g_slice_slider_captions[i]));
+                                    }
+                                }
+                                QWidget* proLabelWidget = new QWidget();
+                                proLabelWidget->setLayout(proLabels);
+                                sliceSliderSubBox->addWidget(proLabelWidget);
+
                                 QVBoxLayout* actualSliders = new QVBoxLayout();{
                                     for(int i=0; i<N_SLICE_SLIDERS; i++){
-                                        QHBoxLayout* sliderBox = new QHBoxLayout();{
-                                            QLabel* curLabel = new QLabel(g_slice_slider_captions[i]);
-                                            sliderBox->addWidget(curLabel);
-                                            m_sliceSliders[i] = new QSlider(Qt::Horizontal);
-                                            m_sliceSliders[i]->setRange(SLICE_SLIDER_MIN, SLICE_SLIDER_MAX);
-                                            sliderBox->addWidget(m_sliceSliders[i]);
-                                            connect(m_sliceSliders[i], SIGNAL(valueChanged(int)), this, SLOT(renderSlice()));
-                                            m_sliceSliders[i]->setValue(SLICE_SLIDER_INIT);
-                                        }
-                                        actualSliders->addLayout(sliderBox);
+                                        m_sliceSliders[i] = new QSlider(Qt::Horizontal);
+                                        m_sliceSliders[i]->setRange(SLICE_SLIDER_MIN, SLICE_SLIDER_MAX);
+                                        connect(m_sliceSliders[i], SIGNAL(valueChanged(int)), this, SLOT(renderSlice()));
+                                        m_sliceSliders[i]->setValue(SLICE_SLIDER_INIT);
+                                        actualSliders->addWidget(m_sliceSliders[i]);
                                     }
                                 }
                                 QWidget* actualSliderWidget = new QWidget();
                                 actualSliderWidget->setLayout(actualSliders);
-                                sliceSliderSubBox->addWidget(actualSliderWidget, 0, 0, 1, 12);
+                                sliceSliderSubBox->addWidget(actualSliderWidget);
 
                                 m_proNumberEdits = new NumberEdit*[N_SLICE_SLIDERS];
                                 QVBoxLayout* sliderDisplays = new QVBoxLayout();{
@@ -182,7 +187,7 @@ Window::Window()
                                 QWidget* displayWidget = new QWidget();
                                 displayWidget->setLayout(sliderDisplays);
                                 displayWidget->setFixedWidth(80);
-                                sliceSliderSubBox->addWidget(displayWidget, 0, 12, 1, 2);
+                                sliceSliderSubBox->addWidget(displayWidget);
                             }
 
                             sliceSliderBox->addLayout(sliceSliderSubBox);
@@ -410,9 +415,9 @@ void Window::renderSlice(int value)
         m_proNumberEdits[1]->displayFloat(dy);
         m_proNumberEdits[2]->displayFloat(dz);
 
-        m_proNumberEdits[3]->displayFloat(theta);
-        m_proNumberEdits[4]->displayFloat(phi);
-        m_proNumberEdits[5]->displayFloat(psi);
+        m_proNumberEdits[3]->displayRadiansAsDegrees(theta);
+        m_proNumberEdits[4]->displayRadiansAsDegrees(phi);
+        m_proNumberEdits[5]->displayRadiansAsDegrees(psi);
 
     }else if(m_sliceTab->currentIndex() == 2){
         Vector4 origin(.5, .5, .5, 1);
