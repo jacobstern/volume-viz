@@ -79,6 +79,7 @@ public slots:
     void setPhongShading(bool);
     void setSliceVisualization(sliceVisualization);
     void invertCrossSection();
+    void setSliceCanonical(canonicalOrientation orientation, float displace);
 
 //! [2]
 protected:

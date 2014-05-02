@@ -285,14 +285,17 @@ void Window::renderSlice(int value)
 
     case SAGITTAL:
         dz = ((float)val)/((float)SLICE_EDGELENGTH);
+        glWidget->setSliceCanonical(SAGITTAL, dz);
         break;
 
     case HORIZONTAL:
         dy = ((float)val)/((float)SLICE_EDGELENGTH);
+        glWidget->setSliceCanonical(HORIZONTAL, dy);
         break;
 
     case CORONAL:
         dx = ((float)val)/((float)SLICE_EDGELENGTH);
+        glWidget->setSliceCanonical(CORONAL, dx);
         break;
 
     default:

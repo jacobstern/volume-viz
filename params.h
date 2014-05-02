@@ -40,7 +40,7 @@ static const char* g_output_file_formats[N_OUTPUT_FILE_FORMATS] = {"BMP", "JPG",
 
 #define N_SLICE_VISUALIZATIONS 3
 typedef enum { SLICE_VIS_NONE = 0, SLICE_VIS_LASER, SLICE_VIS_CROSS_SECTION } sliceVisualization;
-static const char* g_slice_visualization_captions[N_SLICE_VISUALIZATIONS] = {"No slice", "Laser", "Cross section"};
+static const char* g_slice_visualization_captions[N_SLICE_VISUALIZATIONS] = {"None", "Laser", "Cross section"};
 
 struct SliceParameters {
 

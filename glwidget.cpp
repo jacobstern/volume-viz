@@ -241,7 +241,7 @@ void GLWidget::paintGL()
         if (flipCrossSection && normal.y() < -1e-6) {
             normal = -normal;
         }
-        else if (!flipCrossSection && normal.y() > 1e-6 ) {
+        else if (!flipCrossSection && normal.y() > 1e-6) {
             normal = -normal;
         }
 
@@ -706,4 +706,35 @@ void GLWidget::invertCrossSection()
 
     renderingDirty = true;
     update();
+}
+
+void GLWidget::setSliceCanonical(canonicalOrientation orientation, float displace)
+{
+    if (currentSliceVisualisation != SLICE_VIS_NONE) {
+        flipCrossSection = false;
+
+        switch(orientation) {
+
+        case HORIZONTAL:
+            cutNormal = QVector3D(0.f, 1.f, 0.f);
+            cutPoint = QVector3D(0.f, displace, 0.f);
+            break;
+
+        case SAGITTAL:
+            cutNormal = QVector3D(0.f, 0.f, 1.f);
+            cutPoint = QVector3D(0.f, 0.f, displace);
+            break;
+
+        case CORONAL:
+            cutNormal = QVector3D(1.f, 0.f, 0.f);
+            cutPoint = QVector3D(displace, 0.f, 0.f);
+            break;
+
+        }
+
+        hasCuttingPlane = true;
+
+        renderingDirty = true;
+        update();
+    }
 }
