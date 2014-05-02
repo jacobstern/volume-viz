@@ -7,7 +7,8 @@ HEADERS       = glwidget.h \
     slicewidget.h \
     cs123math/CS123Algebra.h \
     CS123Common.h \
-    transfer_functions.h
+    transfer_functions.h \
+    numberedit.h
 
 SOURCES       = glwidget.cpp \
                 main.cpp \
@@ -19,7 +20,8 @@ SOURCES       = glwidget.cpp \
     cs123math/CS123Matrix.cpp \
     cs123math/CS123Matrix.inl \
     cs123math/CS123Vector.inl \
-    params.cpp
+    params.cpp \
+    numberedit.cpp
 QT           += opengl widgets
 
 # install

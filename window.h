@@ -79,6 +79,8 @@ public slots:
 
     void updateSlicePlane(Vector4 cutPoint, Vector4 cutNormal);
 
+
+
 //    void canonicalSliceSliderChanged(int);
 
 protected:

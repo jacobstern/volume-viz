@@ -48,6 +48,8 @@
 #include "slicewidget.h"
 #include "params.h"
 
+#include "numberedit.h"
+
 #include <iostream>
 
 using namespace std;
@@ -116,12 +118,14 @@ Window::Window()
                                         }
                                     }m_canonicalOrientationBox->setLayout(radioBox);
                                     m_canonicalOrientationButtons[SAGITTAL]->setChecked(true);
-                                }simpleSliderBox->addWidget(m_canonicalOrientationBox);
+                                }
+
+                                simpleSliderBox->addWidget(m_canonicalOrientationBox);
                                 m_canonicalSliceSlider = new QSlider(Qt::Horizontal);
                                 m_canonicalSliceSlider->setRange(0,SLICE_EDGELENGTH);
-                                simpleSliderBox->addWidget(m_canonicalSliceSlider);
                                 m_canonicalSliceSlider->setValue(100);
-                                connect(m_canonicalSliceSlider, SIGNAL(valueChanged(int)), this, SLOT(renderSlice()));
+                                simpleSliderBox->addWidget(m_canonicalSliceSlider);
+
                         }
                         QWidget* simpleSliderWidget = new QWidget();
                         simpleSliderWidget->setLayout(simpleSliderBox);
@@ -130,20 +134,40 @@ Window::Window()
                         // arbitrary slicer
                         QVBoxLayout* sliceSliderBox = new QVBoxLayout();{
                             QLabel* sliceSliderLabel = new QLabel("Slicer");
-                            sliceSliderBox->addWidget(sliceSliderLabel);
-                            m_sliceSliders = new QSlider*[N_SLICE_SLIDERS];
-                            for(int i=0; i<N_SLICE_SLIDERS; i++){
-                                QHBoxLayout* sliderBox = new QHBoxLayout();{
-                                    QLabel* curLabel = new QLabel(g_slice_slider_captions[i]);
-                                    sliderBox->addWidget(curLabel);
-                                    m_sliceSliders[i] = new QSlider(Qt::Horizontal);
-                                    m_sliceSliders[i]->setRange(SLICE_SLIDER_MIN, SLICE_SLIDER_MAX);
-                                    sliderBox->addWidget(m_sliceSliders[i]);
-                                    connect(m_sliceSliders[i], SIGNAL(valueChanged(int)), this, SLOT(renderSlice()));
-                                    m_sliceSliders[i]->setValue(SLICE_SLIDER_INIT);
-                                } sliceSliderBox->addLayout(sliderBox);
+
+                            QHBoxLayout* sliceSliderSubBox = new QHBoxLayout();{
+
+                                sliceSliderBox->addWidget(sliceSliderLabel);
+                                m_sliceSliders = new QSlider*[N_SLICE_SLIDERS];
+
+                                QVBoxLayout* actualSliders = new QVBoxLayout();{
+                                    for(int i=0; i<N_SLICE_SLIDERS; i++){
+                                        QHBoxLayout* sliderBox = new QHBoxLayout();{
+                                            QLabel* curLabel = new QLabel(g_slice_slider_captions[i]);
+                                            sliderBox->addWidget(curLabel);
+                                            m_sliceSliders[i] = new QSlider(Qt::Horizontal);
+                                            m_sliceSliders[i]->setRange(SLICE_SLIDER_MIN, SLICE_SLIDER_MAX);
+                                            sliderBox->addWidget(m_sliceSliders[i]);
+                                            connect(m_sliceSliders[i], SIGNAL(valueChanged(int)), this, SLOT(renderSlice()));
+                                            m_sliceSliders[i]->setValue(SLICE_SLIDER_INIT);
+                                        }
+                                        actualSliders->addLayout(sliderBox);
+                                    }
+                                }
+                                sliceSliderSubBox->addLayout(actualSliders);
+
+                                QVBoxLayout* sliderDisplays = new QVBoxLayout();{
+                                    for(int i=0; i<N_SLICE_SLIDERS; i++){
+                                            NumberEdit* numberEdit = new NumberEdit();
+                                            sliderDisplays->addWidget(numberEdit);
+                                            connect(m_sliceSliders[i], SIGNAL(valueChanged(int)), numberEdit, SLOT(displayInteger(int)));
+                                    }
+                                }
+                                sliceSliderSubBox->addLayout(sliderDisplays);
                             }
+                            sliceSliderBox->addLayout(sliceSliderSubBox);
                         }
+
                         QWidget* sliceSliderWidget = new QWidget();
                         sliceSliderWidget->setLayout(sliceSliderBox);
                         m_sliceTab->addTab(sliceSliderWidget, "Pro");

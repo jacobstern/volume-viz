@@ -127,13 +127,10 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
 
 void SliceWidget::paintEvent(QPaintEvent *)
 {
-//    cout << "Paint event!" << endl;
     QPainter painter(this);
-//    cout << "drawing image" << endl;
     if(m_sliceImage){
         painter.drawImage(QPoint(0,0), *m_sliceImage);
     }
-//    cout << "image drawn" << endl;
     update();
 }
 
@@ -161,23 +158,15 @@ Matrix4x4 SliceWidget::getTransformationMatrix(SliceParameters sliceParameters)
     assert(sliceParameters.psi >= -3.2f);
     assert(sliceParameters.psi < 3.2f);
 
-
     Matrix4x4 center2origin = getTransMat( Vector4(-0.5, -0.5, -0.5, 0) );
-
     Matrix4x4 rotX = getRotXMat(sliceParameters.theta);
     Matrix4x4 rotY = getRotYMat(sliceParameters.phi);
     Matrix4x4 rotZ = getRotZMat(sliceParameters.psi);
-
     Matrix4x4 trans = getTransMat( Vector4(sliceParameters.dx, sliceParameters.dy, sliceParameters.dz, 1.0) );
-
     Matrix4x4 origin2center = getTransMat( Vector4(0.5, 0.5, 0.5, 0) );
-
     Matrix4x4 compound = origin2center * trans * rotX * rotY * rotZ * center2origin;
 
-//    cout << "compound: " << compound << endl;
-
     return compound;
-
 }
 
 
