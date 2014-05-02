@@ -53,6 +53,7 @@
 
 #include "camera.h"
 #include "volumegenerator.h"
+#include "params.h"
 
 class QtLogo;
 
@@ -76,6 +77,8 @@ public:
 
 public slots:
     void setPhongShading(bool);
+    void setSliceVisualization(sliceVisualization);
+    void invertCrossSection();
 
 //! [2]
 protected:
@@ -100,6 +103,8 @@ private:
     bool hasCuttingPlane;
     QVector3D cutPoint, cutNormal, cutUp, cutRight;
 
+    sliceVisualization currentSliceVisualisation;
+
     void drawProxyGeometry();
     void drawTextureQuad();
     void showDragUI();
@@ -120,6 +125,7 @@ private:
     bool  phongShading;
 
     bool filterOutput;
+    bool flipCrossSection;
 
     bool renderingDirty;
     float lastRenderTime;

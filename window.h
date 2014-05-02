@@ -76,6 +76,8 @@ public slots:
 
     void saveSliceButtonClicked();
 
+    void updateSliceVisualization();
+
 //    void canonicalSliceSliderChanged(int);
 
 protected:
@@ -83,6 +85,7 @@ protected:
 
 private:
     QSlider *createSlider();
+
 
     GLWidget *glWidget;
     QSlider *xSlider;
@@ -113,6 +116,10 @@ private:
     QTabWidget* m_sliceTab;
 
     QComboBox* m_fileFormats;
+
+    QGroupBox* m_slicingBox;
+    QRadioButton ** m_slicingButtons;
+    QPushButton *m_invertCrossSection;
 
 
 };

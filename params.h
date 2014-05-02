@@ -38,6 +38,10 @@ static char* g_canonical_orientation_captions[N_CANONICAL_ORIENTATIONS] = {"hori
 typedef enum{BMP, JPG, PNG, TIFF, N_OUTPUT_FILE_FORMATS} outputFileFormat;
 static const char* g_output_file_formats[N_OUTPUT_FILE_FORMATS] = {"BMP", "JPG", "PNG", "TIFF"};
 
+#define N_SLICE_VISUALIZATIONS 3
+typedef enum { SLICE_VIS_NONE = 0, SLICE_VIS_LASER, SLICE_VIS_CROSS_SECTION } sliceVisualization;
+static const char* g_slice_visualization_captions[N_SLICE_VISUALIZATIONS] = {"No slice", "Laser", "Cross section"};
+
 struct SliceParameters {
 
     SliceParameters(float x, float y, float z) : dx(x), dy(y), dz(z) {}

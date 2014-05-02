@@ -188,13 +188,42 @@ Window::Window()
             glWidget->setFixedSize(RENDER_SIZE, RENDER_SIZE);
             rightLayout->addWidget(glWidget);
 
-            QHBoxLayout *debug0 = new QHBoxLayout; {
+
+
+            QHBoxLayout *controls0 = new QHBoxLayout; {
                 m_phongShading = new QCheckBox("Phong shading");
                 connect(m_phongShading, SIGNAL(clicked(bool)), glWidget, SLOT(setPhongShading(bool)) );
-                debug0->addWidget(m_phongShading);
+                controls0->addWidget(m_phongShading);
+
+                m_invertCrossSection = new QPushButton("Invert cross section");
+                connect(m_invertCrossSection, SIGNAL(clicked()), glWidget, SLOT(invertCrossSection()));
+                controls0->addWidget(m_invertCrossSection);
+
+                m_invertCrossSection->setEnabled(false);
             }
-            rightLayout->addLayout(debug0);
+            rightLayout->addLayout(controls0);
+
+            QHBoxLayout *radioLayout = new QHBoxLayout;
+
+            m_slicingBox = new QGroupBox; {
+                QLabel *sliceViewLabel = new QLabel("Slice view");
+                radioLayout->addWidget(sliceViewLabel);
+                m_slicingButtons = new QRadioButton*[N_SLICE_VISUALIZATIONS];
+                for(int i=0; i<N_SLICE_VISUALIZATIONS; i++){
+                    m_slicingButtons[i] = new QRadioButton();
+                    radioLayout->addWidget(m_slicingButtons[i]);
+                    QLabel* radioLabel = new QLabel(g_slice_visualization_captions[i]);
+                    radioLayout->addWidget(radioLabel);
+                    connect(m_slicingButtons[i], SIGNAL(clicked(bool)), this, SLOT(updateSliceVisualization()));
+                }
+            }
+            m_slicingButtons[SLICE_VIS_NONE]->setChecked(true);
+
+            m_slicingBox->setLayout(radioLayout);
+            radioLayout->setAlignment(Qt::AlignLeft);
+            rightLayout->addWidget(m_slicingBox);
         }
+        rightLayout->setAlignment(Qt::AlignTop);
         mainLayout->addLayout(rightLayout);
 
     }
@@ -287,11 +316,20 @@ void Window::renderSlice(int value)
     cout << "Window: Slice rendered" << endl;
 }
 
+void Window::updateSliceVisualization()
+{
+    for(int i=0; i<N_SLICE_VISUALIZATIONS; i++){
+        if (m_slicingButtons[i]->isChecked()) {
+            if (i == SLICE_VIS_CROSS_SECTION) {
+                m_invertCrossSection->setEnabled(true);
+            } else {
+                m_invertCrossSection->setEnabled(false);
+            }
 
-
-
-
-
+            glWidget->setSliceVisualization((sliceVisualization) i);
+        }
+    }
+}
 
 
 

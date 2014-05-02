@@ -116,6 +116,10 @@ GLWidget::GLWidget(QWidget *parent)
     hasCuttingPlane = false;
 
     renderingDirty = true;
+
+    currentSliceVisualisation = SLICE_VIS_NONE;
+
+    flipCrossSection = false;
 }
 //! [0]
 
@@ -224,16 +228,30 @@ void GLWidget::paintGL()
 
     struct slice_params sliceParams;
 
-    if (hasCuttingPlane) {
-        sliceParams.type = SLICE_PLANE_CUT;
+    if (hasCuttingPlane && currentSliceVisualisation != SLICE_VIS_NONE) {
+        if (currentSliceVisualisation == SLICE_VIS_CROSS_SECTION) {
+            sliceParams.type = SLICE_PLANE_CUT;
+        }
+        else {
+            sliceParams.type = SLICE_PLANE;
+        }
+
+        QVector3D normal = cutNormal;
+
+        if (flipCrossSection && normal.y() < -1e-6) {
+            normal = -normal;
+        }
+        else if (!flipCrossSection && normal.y() > 1e-6 ) {
+            normal = -normal;
+        }
 
         sliceParams.params[0] = cutPoint.x();
         sliceParams.params[1] = cutPoint.y();
         sliceParams.params[2] = cutPoint.z();
 
-        sliceParams.params[3] = cutNormal.x();
-        sliceParams.params[4] = cutNormal.y();
-        sliceParams.params[5] = cutNormal.z();
+        sliceParams.params[3] = normal.x();
+        sliceParams.params[4] = normal.y();
+        sliceParams.params[5] = normal.z();
     }
     else {
         sliceParams.type = SLICE_NONE;
@@ -372,6 +390,17 @@ void GLWidget::resizeGL(int width, int height)
 }
 //! [8]
 
+void GLWidget::setSliceVisualization(sliceVisualization visualization)
+{
+    currentSliceVisualisation = visualization;
+
+    if (visualization != SLICE_VIS_CROSS_SECTION)
+        flipCrossSection = false;
+
+    renderingDirty = true;
+    update();
+}
+
 //! [9]
 void GLWidget::mousePressEvent(QMouseEvent *event)
 {
@@ -469,12 +498,6 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         p.setY( nrm( p.y() ) );
         p.setZ( nrm( p.z() ) );
 
-        if (n.y() > 1e-6)
-            n = -n;
-
-        hasCuttingPlane = true;
-        renderingDirty  = true;
-
         cutPoint = p;
         cutNormal = n;
 
@@ -484,7 +507,14 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         isDragging = false;
         didStartDragging = false;
 
-        onUpdateSlicePlane();
+        if (currentSliceVisualisation != SLICE_VIS_NONE) {
+            hasCuttingPlane = true;
+            renderingDirty  = true;
+
+            flipCrossSection = false;
+
+            onUpdateSlicePlane();
+        }
     }
 
     update();
@@ -623,6 +653,9 @@ void GLWidget::loadShaderProgram(QGLShaderProgram &program, QString name)
 
 void GLWidget::loadVolume(const char* path)
 {
+    camera->setPosition( QVector3D(0, 0, -4.f) );
+    camera->lookAt( QVector3D(0, 0, 0) );
+
     cout << "Generating mock voltex from " << path << endl;
     m_volgen = new VolumeGenerator(0,0,0);
 
@@ -667,4 +700,10 @@ void GLWidget::onUpdateSlicePlane()
     qDebug() << "TODO: update slice widget";
 }
 
+void GLWidget::invertCrossSection()
+{
+    flipCrossSection = !flipCrossSection;
 
+    renderingDirty = true;
+    update();
+}
