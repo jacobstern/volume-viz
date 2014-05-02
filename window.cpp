@@ -135,7 +135,7 @@ Window::Window()
                         QVBoxLayout* sliceSliderBox = new QVBoxLayout();{
                             QLabel* sliceSliderLabel = new QLabel("Slicer");
 
-                            QHBoxLayout* sliceSliderSubBox = new QHBoxLayout();{
+                            QGridLayout* sliceSliderSubBox = new QGridLayout();{
 
                                 sliceSliderBox->addWidget(sliceSliderLabel);
                                 m_sliceSliders = new QSlider*[N_SLICE_SLIDERS];
@@ -154,16 +154,23 @@ Window::Window()
                                         actualSliders->addLayout(sliderBox);
                                     }
                                 }
-                                sliceSliderSubBox->addLayout(actualSliders);
+                                QWidget* actualSliderWidget = new QWidget();
+                                actualSliderWidget->setLayout(actualSliders);
+                                sliceSliderSubBox->addWidget(actualSliderWidget, 0, 0, 1, 12);
 
                                 QVBoxLayout* sliderDisplays = new QVBoxLayout();{
                                     for(int i=0; i<N_SLICE_SLIDERS; i++){
                                             NumberEdit* numberEdit = new NumberEdit();
                                             sliderDisplays->addWidget(numberEdit);
+                                            numberEdit->displayInteger(SLICE_SLIDER_INIT);
                                             connect(m_sliceSliders[i], SIGNAL(valueChanged(int)), numberEdit, SLOT(displayInteger(int)));
                                     }
                                 }
-                                sliceSliderSubBox->addLayout(sliderDisplays);
+                                QWidget* displayWidget = new QWidget();
+                                displayWidget->setLayout(sliderDisplays);
+//                                displayWidget->setFixedWidth(60);
+
+                                sliceSliderSubBox->addWidget(displayWidget, 0, 12, 1, 2);
                             }
                             sliceSliderBox->addLayout(sliceSliderSubBox);
                         }
@@ -180,6 +187,8 @@ Window::Window()
                         QWidget* freeSliceWidget = new QWidget();
                         freeSliceWidget->setLayout(freeSliceBox);
                         m_sliceTab->addTab(freeSliceWidget, "Free");
+
+                        m_sliceTab->setCurrentIndex(1);
 
                     }
                     sliceBox->addWidget(m_sliceTab);
