@@ -55,13 +55,6 @@ void Camera::updateView()
     glMatrixMode(GL_MODELVIEW);
 
     glLoadMatrixd( transform.constData() );
-
-//    float debug[16];
-//    glGetFloatv(GL_MODELVIEW_MATRIX, debug);
-
-//    for (int i = 0; i < 16; i++) {
-//        qDebug() << i << " " << debug[i];
-//    }
 }
 
 QMatrix4x4 Camera::rotation()

@@ -77,8 +77,10 @@ public slots:
 
     void saveSliceButtonClicked();
 
+
     void updateSlicePlane(Vector4 cutPoint, Vector4 cutNormal);
 
+    void updateSliceVisualization();
 
 
 //    void canonicalSliceSliderChanged(int);
@@ -88,6 +90,7 @@ protected:
 
 private:
     QSlider *createSlider();
+
 
     GLWidget *glWidget;
     QSlider *xSlider;
@@ -119,8 +122,15 @@ private:
 
     QComboBox* m_fileFormats;
 
+
     Vector4 m_point;
     Vector4 m_normal;
+
+    QGroupBox* m_slicingBox;
+    QRadioButton ** m_slicingButtons;
+    QPushButton *m_invertCrossSection;
+
+
 
 };
 //! [0]
