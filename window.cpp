@@ -204,7 +204,7 @@ Window::Window()
 #ifdef FREE_SLICING_ENABLED
 
                         QVBoxLayout* freeSliceWrapper = new QVBoxLayout();{
-                            freeSliceWrapper->addWidget(new QLabel("The is free form; play with the mouse!"));
+                            freeSliceWrapper->addWidget(new QLabel("Click and drag with the left mouse button to create a slicing plane"));
 
                             QHBoxLayout* freeSliceBox = new QHBoxLayout();{
 
@@ -225,7 +225,7 @@ Window::Window()
                                 freeSliceBox->addLayout(freeSliderLabelBox);
                                 freeSliceBox->addLayout(actualFreeSliders);
                             }
-                            freeSliceWrapper->addLayout(freeSliceBox);
+//                            freeSliceWrapper->addLayout(freeSliceBox);
 
                         }
 
@@ -310,7 +310,8 @@ Window::Window()
                     connect(m_slicingButtons[i], SIGNAL(clicked(bool)), this, SLOT(updateSliceVisualization()));
                 }
             }
-            m_slicingButtons[SLICE_VIS_LASER]->setChecked(true);
+//            m_slicingButtons[SLICE_VIS_LASER]->setChecked(true);
+            m_slicingButtons[SLICE_VIS_NONE]->setChecked(true);
 
             m_slicingBox->setLayout(radioLayout);
             radioLayout->setAlignment(Qt::AlignLeft);

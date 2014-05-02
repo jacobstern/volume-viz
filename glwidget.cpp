@@ -120,7 +120,7 @@ GLWidget::GLWidget(QWidget *parent)
 
     renderingDirty = true;
 
-    currentSliceVisualisation = SLICE_VIS_LASER;
+    currentSliceVisualisation = SLICE_VIS_NONE;
 
     flipCrossSection = false;
 }
