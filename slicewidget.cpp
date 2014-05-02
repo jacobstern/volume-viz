@@ -55,20 +55,6 @@
 using std::cout;
 using std::endl;
 
-//std::ostream& operator<<(std::ostream& os, const SliceParameters p)
-//{
-//    os << "dx: " << p.dx << ", dy: " << p.dy << ", dz: " << p.dz
-//       << "theta: " << p.theta << ", phi: " << p.phi << ", psi: " << p.psi;
-//    return os;
-//}
-
-//std::ostream& operator<<(std::ostream& os, const BufferParameters p)
-//{
-//    os << "height: " << p.height << ", width: " << p.width;
-//    return os;
-//}
-
-
 SliceWidget::SliceWidget(QWidget *parent)
 {
     int n = SLICE_EDGELENGTH;
@@ -92,6 +78,9 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
                               BufferParameters bufferParameters,
                               canonicalOrientation orientation)
 {
+    cout << "SliceWidget::renderSlice: " << sliceParameters << endl;
+
+
     if(bufferParameters.height*bufferParameters.width != m_sizeY*m_sizeX){
         cout << "allocating new slice buffer" << endl;
         delete[] m_sliceBuffer;
@@ -101,9 +90,24 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
         cout << "new slice buffer allocated" << endl;
     }
 
-    invoke_slice_kernel(m_sliceBuffer, bufferParameters, sliceParameters, orientation);
+    if(orientation == FREE_FORM){
+        Matrix4x4 trans = getTransformationMatrix(sliceParameters);
+        invoke_advanced_slice_kernel(m_sliceBuffer, bufferParameters, trans);
 
-    cout << "Updating slice image" << endl;\
+
+        // print a few examples
+//        origin = Vector4(0, 0, 0, 0);
+
+//        cout
+
+
+
+
+    }else{
+       invoke_slice_kernel(m_sliceBuffer, bufferParameters, sliceParameters, orientation);
+    }
+
+    cout << "Updating slice image" << endl;
     delete m_sliceImage;
     m_sliceImage = new QImage(bufferParameters.width, bufferParameters.height, QImage::Format_RGB32);
     BGRA* bits = new BGRA[bufferParameters.width*bufferParameters.height];
@@ -123,13 +127,10 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
 
 void SliceWidget::paintEvent(QPaintEvent *)
 {
-//    cout << "Paint event!" << endl;
     QPainter painter(this);
-//    cout << "drawing image" << endl;
     if(m_sliceImage){
         painter.drawImage(QPoint(0,0), *m_sliceImage);
     }
-//    cout << "image drawn" << endl;
     update();
 }
 
@@ -147,6 +148,33 @@ void SliceWidget::saveSliceAs(QString fileName)
         m_sliceImage->save(fileName);
     }
 }
+
+Matrix4x4 SliceWidget::getTransformationMatrix(SliceParameters sliceParameters)
+{
+    assert(sliceParameters.theta >= -3.2f);
+    assert(sliceParameters.theta < 3.2f); // ballpark estimate of 2 pi; might have rounding error, but this bound is tight enough
+    assert(sliceParameters.phi >= -3.2f);
+    assert(sliceParameters.phi < 3.2f);
+    assert(sliceParameters.psi >= -3.2f);
+    assert(sliceParameters.psi < 3.2f);
+
+    Matrix4x4 center2origin = getTransMat( Vector4(-0.5, -0.5, -0.5, 0) );
+    Matrix4x4 rotX = getRotXMat(sliceParameters.theta);
+    Matrix4x4 rotY = getRotYMat(sliceParameters.phi);
+    Matrix4x4 rotZ = getRotZMat(sliceParameters.psi);
+    Matrix4x4 trans = getTransMat( Vector4(sliceParameters.dx, sliceParameters.dy, sliceParameters.dz, 1.0) );
+    Matrix4x4 origin2center = getTransMat( Vector4(0.5, 0.5, 0.5, 0) );
+    Matrix4x4 compound = origin2center * trans * rotX * rotY * rotZ * center2origin;
+
+    return compound;
+}
+
+
+
+
+
+
+
 
 
 

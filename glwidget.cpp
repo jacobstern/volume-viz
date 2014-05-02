@@ -53,6 +53,8 @@
 #include "params.h"
 #include "transfer_functions.h"
 
+#include "window.h"
+
 using std::cout;
 using std::endl;
 
@@ -444,8 +446,8 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
         renderingDirty = true;
     } else if (event->buttons() & Qt::MiddleButton && hasCuttingPlane) {
-        cutPoint = cutPoint + cutRight * dx / ( width()  );
-        cutPoint = cutPoint + cutUp    * dy / ( height() );
+        cutPoint = cutPoint + cutRight * dx / ( width()  ) * 3.5;
+        cutPoint = cutPoint + cutUp    * dy / ( height() ) * 3.5;
 
         renderingDirty = true;
 
@@ -696,8 +698,21 @@ void GLWidget::loadVolume(const char* path)
 
 void GLWidget::onUpdateSlicePlane()
 {
-    // Update slice in SliceWidget
-    qDebug() << "TODO: update slice widget";
+    Vector4 point = Vector4();
+    point.x = cutPoint.x();
+    point.y = cutPoint.y();
+    point.z = cutPoint.z();
+    point.w = 1.0;
+
+    Vector4 normal = Vector4();
+    normal.x = cutNormal.x();
+    normal.y = cutNormal.y();
+    normal.z = cutNormal.z();
+    normal.w = 0.0;
+
+    ((Window*)parentWidget())->updateSlicePlane(point, normal);
+
+
 }
 
 void GLWidget::invertCrossSection()

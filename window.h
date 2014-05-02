@@ -43,6 +43,8 @@
 
 #include <QWidget>
 #include "slicewidget.h"
+#include "CS123Common.h"
+#include "cs123math/CS123Algebra.h"
 
 // ###########################################
 #include <QLineEdit>
@@ -50,7 +52,6 @@
 
 #include <QMap>
 using std::map;
-
 
 QT_BEGIN_NAMESPACE
 class QSlider;
@@ -76,7 +77,11 @@ public slots:
 
     void saveSliceButtonClicked();
 
+
+    void updateSlicePlane(Vector4 cutPoint, Vector4 cutNormal);
+
     void updateSliceVisualization();
+
 
 //    void canonicalSliceSliderChanged(int);
 
@@ -117,9 +122,14 @@ private:
 
     QComboBox* m_fileFormats;
 
+
+    Vector4 m_point;
+    Vector4 m_normal;
+
     QGroupBox* m_slicingBox;
     QRadioButton ** m_slicingButtons;
     QPushButton *m_invertCrossSection;
+
 
 
 };

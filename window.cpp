@@ -48,6 +48,8 @@
 #include "slicewidget.h"
 #include "params.h"
 
+#include "numberedit.h"
+
 #include <iostream>
 
 using namespace std;
@@ -116,12 +118,25 @@ Window::Window()
                                         }
                                     }m_canonicalOrientationBox->setLayout(radioBox);
                                     m_canonicalOrientationButtons[SAGITTAL]->setChecked(true);
-                                }simpleSliderBox->addWidget(m_canonicalOrientationBox);
-                                m_canonicalSliceSlider = new QSlider(Qt::Horizontal);
-                                m_canonicalSliceSlider->setRange(0,SLICE_EDGELENGTH);
-                                simpleSliderBox->addWidget(m_canonicalSliceSlider);
-                                m_canonicalSliceSlider->setValue(100);
-                                connect(m_canonicalSliceSlider, SIGNAL(valueChanged(int)), this, SLOT(renderSlice()));
+                                }
+                                simpleSliderBox->addWidget(m_canonicalOrientationBox);
+
+                                QHBoxLayout* canonicalWrapperBox = new QHBoxLayout();{
+                                    m_canonicalSliceSlider = new QSlider(Qt::Horizontal);
+                                    m_canonicalSliceSlider->setRange(0,SLICE_EDGELENGTH);
+                                    m_canonicalSliceSlider->setValue(100);
+                                    canonicalWrapperBox->addWidget(m_canonicalSliceSlider);
+                                    NumberEdit* canonicalEdit = new NumberEdit();
+                                    canonicalEdit->displayInteger(SLICE_SLIDER_INIT);
+                                    canonicalWrapperBox->addWidget(canonicalEdit);
+                                    canonicalEdit->setFixedWidth(50);
+                                    connect(m_canonicalSliceSlider, SIGNAL(valueChanged(int)), canonicalEdit, SLOT(displayInteger(int)));
+
+
+                                    connect(m_canonicalSliceSlider, SIGNAL(valueChanged(int)), this, SLOT(renderSlice()));
+                                }
+                                simpleSliderBox->addLayout(canonicalWrapperBox);
+
                         }
                         QWidget* simpleSliderWidget = new QWidget();
                         simpleSliderWidget->setLayout(simpleSliderBox);
@@ -130,20 +145,62 @@ Window::Window()
                         // arbitrary slicer
                         QVBoxLayout* sliceSliderBox = new QVBoxLayout();{
                             QLabel* sliceSliderLabel = new QLabel("Slicer");
-                            sliceSliderBox->addWidget(sliceSliderLabel);
-                            m_sliceSliders = new QSlider*[N_SLICE_SLIDERS];
-                            for(int i=0; i<N_SLICE_SLIDERS; i++){
-                                QHBoxLayout* sliderBox = new QHBoxLayout();{
-                                    QLabel* curLabel = new QLabel(g_slice_slider_captions[i]);
-                                    sliderBox->addWidget(curLabel);
-                                    m_sliceSliders[i] = new QSlider(Qt::Horizontal);
-                                    sliderBox->addWidget(m_sliceSliders[i]);
-                                } sliceSliderBox->addLayout(sliderBox);
+
+                            QGridLayout* sliceSliderSubBox = new QGridLayout();{
+
+                                sliceSliderBox->addWidget(sliceSliderLabel);
+                                m_sliceSliders = new QSlider*[N_SLICE_SLIDERS];
+
+                                QVBoxLayout* actualSliders = new QVBoxLayout();{
+                                    for(int i=0; i<N_SLICE_SLIDERS; i++){
+                                        QHBoxLayout* sliderBox = new QHBoxLayout();{
+                                            QLabel* curLabel = new QLabel(g_slice_slider_captions[i]);
+                                            sliderBox->addWidget(curLabel);
+                                            m_sliceSliders[i] = new QSlider(Qt::Horizontal);
+                                            m_sliceSliders[i]->setRange(SLICE_SLIDER_MIN, SLICE_SLIDER_MAX);
+                                            sliderBox->addWidget(m_sliceSliders[i]);
+                                            connect(m_sliceSliders[i], SIGNAL(valueChanged(int)), this, SLOT(renderSlice()));
+                                            m_sliceSliders[i]->setValue(SLICE_SLIDER_INIT);
+                                        }
+                                        actualSliders->addLayout(sliderBox);
+                                    }
+                                }
+                                QWidget* actualSliderWidget = new QWidget();
+                                actualSliderWidget->setLayout(actualSliders);
+                                sliceSliderSubBox->addWidget(actualSliderWidget, 0, 0, 1, 12);
+
+                                QVBoxLayout* sliderDisplays = new QVBoxLayout();{
+                                    for(int i=0; i<N_SLICE_SLIDERS; i++){
+                                            NumberEdit* numberEdit = new NumberEdit();
+                                            sliderDisplays->addWidget(numberEdit);
+                                            numberEdit->displayInteger(SLICE_SLIDER_INIT);
+                                            connect(m_sliceSliders[i], SIGNAL(valueChanged(int)), numberEdit, SLOT(displayInteger(int)));
+                                    }
+                                }
+                                QWidget* displayWidget = new QWidget();
+                                displayWidget->setLayout(sliderDisplays);
+                                displayWidget->setFixedWidth(50);
+                                sliceSliderSubBox->addWidget(displayWidget, 0, 12, 1, 2);
                             }
+
+                            sliceSliderBox->addLayout(sliceSliderSubBox);
                         }
+
                         QWidget* sliceSliderWidget = new QWidget();
                         sliceSliderWidget->setLayout(sliceSliderBox);
                         m_sliceTab->addTab(sliceSliderWidget, "Pro");
+
+
+                        QVBoxLayout* freeSliceBox = new QVBoxLayout();{
+                            freeSliceBox->addWidget(new QLabel("Please click and drag\nwith the left mouse button\n\n \
+                                                               Click and drag the mouse wheel to move the plane "));
+                        }
+                        QWidget* freeSliceWidget = new QWidget();
+                        freeSliceWidget->setLayout(freeSliceBox);
+                        m_sliceTab->addTab(freeSliceWidget, "Free");
+
+                        m_sliceTab->setCurrentIndex(1);
+
                     }
                     sliceBox->addWidget(m_sliceTab);
                 }
@@ -268,6 +325,9 @@ void Window::renderSlice(int value)
     float dx = 0.0;
     float dy = 0.0;
     float dz = 0.0;
+    float theta = 0.0;
+    float phi = 0.0;
+    float psi = 0.0;
 
     canonicalOrientation orientation;
 
@@ -280,33 +340,63 @@ void Window::renderSlice(int value)
         }
     }
 
+    // TODO: Get active tab
 
-    switch(orientation) {
+    if(m_sliceTab->currentIndex() == 0){
 
-    case SAGITTAL:
-        dz = ((float)val)/((float)SLICE_EDGELENGTH);
-        glWidget->setSliceCanonical(SAGITTAL, dz);
-        break;
+        switch(orientation) {
 
-    case HORIZONTAL:
-        dy = ((float)val)/((float)SLICE_EDGELENGTH);
-        glWidget->setSliceCanonical(HORIZONTAL, dy);
-        break;
+        case SAGITTAL:
+            dz = ((float)val)/((float)SLICE_EDGELENGTH);
+            glWidget->setSliceCanonical(SAGITTAL, dz);
+            break;
 
-    case CORONAL:
-        dx = ((float)val)/((float)SLICE_EDGELENGTH);
-        glWidget->setSliceCanonical(CORONAL, dx);
-        break;
+        case HORIZONTAL:
+            dy = ((float)val)/((float)SLICE_EDGELENGTH);
+            glWidget->setSliceCanonical(HORIZONTAL, dy);
+            break;
 
-    default:
-        cout << "ERROR: Invalid default orientation " << endl;
+        case CORONAL:
+            dx = ((float)val)/((float)SLICE_EDGELENGTH);
+            glWidget->setSliceCanonical(CORONAL, dx);
+            break;
+
+        default:
+            cout << "ERROR: Invalid default orientation " << endl;
+            assert(false);
+        }
+
+    }else if(m_sliceTab->currentIndex() == 1){
+
+        dx = ((float)m_sliceSliders[0]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2;
+        dy = ((float)m_sliceSliders[1]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2;
+        dz = ((float)m_sliceSliders[2]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2;
+
+        theta = ((float)m_sliceSliders[3]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2 * M_PI;
+        phi = ((float)m_sliceSliders[4]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2 * M_PI;
+        psi = ((float)m_sliceSliders[5]->value())/((float)SLICE_SLIDER_MAX - SLICE_SLIDER_MIN) * 2 * M_PI;
+
+        cout << "dx: " << dx << ", dy: " << dy << ", dz: " << dz << ", theta: " << theta << ", phi: " << phi << ", psi: " << psi << endl;
+
+        orientation = FREE_FORM;
+
+    }else if(m_sliceTab->currentIndex() == 2){
+
+        dx = m_point.x;
+        dy = m_point.y;
+        dz = m_point.z;
+
+        // idea: Just take the dot products
+//        theta = acos(m_normal.x);
+//        phi = acos(m_normal.y);
+//        psi = acos(m_normal.z);
+
+        cout << "dx: " << dx << ", dy: " << dy << ", dz: " << dz << ", theta: " << theta << ", phi: " << phi << ", psi: " << psi << endl;
+
+    }else{
+        cerr << "ERROR: Invalid index for slice tab" << endl;
         assert(false);
     }
-
-
-    float theta = 0.0;
-    float phi = 0.0;
-    float psi = 0.0;
 
     int height = SLICE_EDGELENGTH;
     int width = SLICE_EDGELENGTH;
@@ -314,10 +404,22 @@ void Window::renderSlice(int value)
     SliceParameters sliceParameters(dx, dy, dz, theta, phi, psi);
     BufferParameters bufferParameters(height, width);
 
-    cout << "Window: Rendering slice" << endl;
     m_sliceWidget->renderSlice(sliceParameters, bufferParameters, orientation);
-    cout << "Window: Slice rendered" << endl;
 }
+
+
+void Window::updateSlicePlane(Vector4 cutPoint, Vector4 cutNormal)
+{
+//    cout << "Window::updateSlicePlane: " << cutPoint << ", " << cutNormal << endl;
+
+//    m_point = cutPoint;
+//    m_normal = cutNormal;
+
+//    m_sliceTab->setCurrentIndex(2);
+//    renderSlice(0);
+}
+
+
 
 void Window::updateSliceVisualization()
 {
@@ -333,6 +435,7 @@ void Window::updateSliceVisualization()
         }
     }
 }
+
 
 
 

@@ -4,16 +4,17 @@
 #include <string>
 
 #include "CS123Common.h"
+#include "cs123math/CS123Algebra.h"
 
 using std::string;
 
-struct Vector3
-{
-    Vector3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
-    float x;
-    float y;
-    float z;
-};
+//struct Vector3
+//{
+//    Vector3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
+//    float x;
+//    float y;
+//    float z;
+//};
 
 typedef Vector3 Point3;
 

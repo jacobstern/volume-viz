@@ -55,6 +55,8 @@
 #include "volumegenerator.h"
 #include "params.h"
 
+#include "cs123math/CS123Algebra.h"
+
 
 class SliceWidget : public QWidget
 {
@@ -74,6 +76,8 @@ public:
     void saveSliceAs(QString fileName);
 
     float* getSlice(size_t& height, size_t& width);
+
+    Matrix4x4 getTransformationMatrix(SliceParameters sliceParameters);
 
 protected:
     virtual void paintEvent(QPaintEvent *);

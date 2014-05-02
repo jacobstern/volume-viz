@@ -500,47 +500,46 @@ void cudaLoadVolume(byte* texels, size_t size, Vector3 dims,
 
 
 // ################ Robin's extra stuff for slicing
+#include "output.h"
 
-std::ostream& operator<<(std::ostream& os, const SliceParameters p)
-{
-    os << "dx: " << p.dx << ", dy: " << p.dy << ", dz: " << p.dz
-       << "theta: " << p.theta << ", phi: " << p.phi << ", psi: " << p.psi;
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const BufferParameters p)
-{
-    os << "height: " << p.height << ", width: " << p.width;
-    return os;
-}
 
 void invoke_slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c)
-{
-
-    cout << "pretending to invoke kernel" << endl;
-
+{    
     float* buffer_dev;
-
     checkCudaErrors( cudaMalloc( &buffer_dev, bp.height*bp.width*sizeof(float)) );
 
     int dim = 1024;
-
     dim3 grids(dim/16, dim/16);
     dim3 threads(16,16);
 
-    cout << "launching kernel" << endl;
-
-    cout << "kernel parameters: " << sp << endl << bp << endl;
-
-
     slice_kernel<<<grids,threads>>>( buffer_dev, bp, sp, c );
-    cout << "kernel launched" << endl;
 
     checkCudaErrors( cudaMemcpy( buffer, buffer_dev, bp.height*bp.width*sizeof(float), cudaMemcpyDeviceToHost) );
+    checkCudaErrors( cudaFree( buffer_dev ) );
+}
 
+
+void invoke_advanced_slice_kernel(float *buffer, BufferParameters bp, Matrix4x4 trans)
+{
+    float* buffer_dev;
+    REAL* trans_dev;
+
+    checkCudaErrors( cudaMalloc( &buffer_dev, bp.height*bp.width*sizeof(float)) );
+    checkCudaErrors( cudaMalloc( &trans_dev, 16*sizeof(REAL) ) );
+    checkCudaErrors( cudaMemcpy( trans_dev, trans.data, 16*sizeof(REAL), cudaMemcpyHostToDevice) );
+
+    int dim = 1024;
+    dim3 grids(dim/16, dim/16);
+    dim3 threads(16,16);
+
+    advanced_slice_kernel<<<grids,threads>>>( buffer_dev, bp, trans_dev );
+
+    checkCudaErrors( cudaMemcpy( buffer, buffer_dev, bp.height*bp.width*sizeof(float), cudaMemcpyDeviceToHost) );
     checkCudaErrors( cudaFree( buffer_dev ) );
 
+
 }
+
 __global__
 void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canonicalOrientation c)
 {
@@ -556,13 +555,6 @@ void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canoni
             pos.x = 0;
             pos.y = 0;
             pos.z = 0;
-
-
-            // TODO: Account for rotation
-
-
-
-
 
             switch(c){
 
@@ -593,13 +585,41 @@ void slice_kernel(float *buffer, BufferParameters bp, SliceParameters sp, canoni
             float sample = tex3D(texVolume, pos.x, pos.y, pos.z);
 
             buffer[offset] = sample;
-
-//          buffer[offset] = (pos.x + pos.y)/2;
-
-
     }
+}
+
+__global__
+void advanced_slice_kernel(float *buffer, BufferParameters bp, REAL* trans)
+{
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int offset = j*bp.height+i;
+
+    if(j<bp.height && i<bp.width){
+
+        float4 raw;
+        raw.x = ((float)i)/((float)bp.width);
+        raw.y = ((float)j)/((float)bp.height);
+        raw.z = 0.5;
+        raw.w = 1;
+
+        float4 pos;
+
+        pos.x = trans[0]*raw.x + trans[1]*raw.y + trans[2]*raw.z + trans[3]*raw.w;
+        pos.y = trans[4]*raw.x + trans[5]*raw.y + trans[6]*raw.z + trans[7]*raw.w;
+        pos.z = trans[8]*raw.x + trans[9]*raw.y + trans[10]*raw.z + trans[11]*raw.w;
 
 
+        float sample;
+        if(pos.x <= 0.0 || pos.x >= 1.0 || pos.y <= 0.0 || pos.y >= 1.0 || pos.z <= 0.0 || pos.z >= 1.0){
+            sample = 0.0;
+        }else{
+
+            sample = tex3D(texVolume, pos.x, pos.y, pos.z);
+        }
+
+        buffer[offset] = sample;
+    }
 }
 
 

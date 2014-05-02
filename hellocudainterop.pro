@@ -5,14 +5,23 @@ HEADERS       = glwidget.h \
     volumegenerator.h \
     params.h \
     slicewidget.h \
-    transfer_functions.h
+    cs123math/CS123Algebra.h \
+    CS123Common.h \
+    transfer_functions.h \
+    numberedit.h
+
 SOURCES       = glwidget.cpp \
                 main.cpp \
                 window.cpp \
                 qtlogo.cpp \
     camera.cpp \
     volumegenerator.cpp \
-    slicewidget.cpp
+    slicewidget.cpp \
+    cs123math/CS123Matrix.cpp \
+    cs123math/CS123Matrix.inl \
+    cs123math/CS123Vector.inl \
+    params.cpp \
+    numberedit.cpp
 QT           += opengl widgets
 
 # install
