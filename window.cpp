@@ -191,6 +191,10 @@ Window::Window()
                             }
 
                             sliceSliderBox->addLayout(sliceSliderSubBox);
+
+                            QPushButton* proResetButton = new QPushButton("Reset view");
+                            connect(proResetButton, SIGNAL(clicked()), this, SLOT(onResetView()));
+                            sliceSliderBox->addWidget(proResetButton);
                         }
 
                         QWidget* sliceSliderWidget = new QWidget();
@@ -529,5 +533,17 @@ void Window::setCanonicalOffset(float offset)
 
 //    cerr << offset << endl;
 //    cerr << value << endl;
+}
+
+
+void Window::onResetView()
+{
+    cout << "Reset view!" << endl;
+
+    for(int i=0; i<N_SLICE_SLIDERS; i++){
+        m_sliceSliders[i]->setValue(SLICE_SLIDER_INIT);
+    }
+
+
 }
 

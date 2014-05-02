@@ -86,6 +86,8 @@ public slots:
 
     void setCanonicalOffset(float offset);
 
+    void onResetView();
+
 
 //    void canonicalSliceSliderChanged(int);
 
