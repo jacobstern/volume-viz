@@ -119,12 +119,20 @@ Window::Window()
                                     }m_canonicalOrientationBox->setLayout(radioBox);
                                     m_canonicalOrientationButtons[SAGITTAL]->setChecked(true);
                                 }
-
                                 simpleSliderBox->addWidget(m_canonicalOrientationBox);
-                                m_canonicalSliceSlider = new QSlider(Qt::Horizontal);
-                                m_canonicalSliceSlider->setRange(0,SLICE_EDGELENGTH);
-                                m_canonicalSliceSlider->setValue(100);
-                                simpleSliderBox->addWidget(m_canonicalSliceSlider);
+
+                                QHBoxLayout* canonicalWrapperBox = new QHBoxLayout();{
+                                    m_canonicalSliceSlider = new QSlider(Qt::Horizontal);
+                                    m_canonicalSliceSlider->setRange(0,SLICE_EDGELENGTH);
+                                    m_canonicalSliceSlider->setValue(100);
+                                    canonicalWrapperBox->addWidget(m_canonicalSliceSlider);
+                                    NumberEdit* canonicalEdit = new NumberEdit();
+                                    canonicalEdit->displayInteger(SLICE_SLIDER_INIT);
+                                    canonicalWrapperBox->addWidget(canonicalEdit);
+                                    canonicalEdit->setFixedWidth(50);
+                                    connect(m_canonicalSliceSlider, SIGNAL(valueChanged(int)), canonicalEdit, SLOT(displayInteger(int)));
+                                }
+                                simpleSliderBox->addLayout(canonicalWrapperBox);
 
                         }
                         QWidget* simpleSliderWidget = new QWidget();
