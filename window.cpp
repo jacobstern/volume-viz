@@ -192,24 +192,40 @@ Window::Window()
                         sliceSliderWidget->setLayout(sliceSliderBox);
                         m_sliceTab->addTab(sliceSliderWidget, "Pro");
 
+#ifdef FREE_SLICING_ENABLED
 
-                        QVBoxLayout* freeSliceBox = new QVBoxLayout();{
-                            freeSliceBox->addWidget(new QLabel("The is free form; play with the mouse!"));
-                            m_numberEdits = new NumberEdit*[N_SLICE_SLIDERS];
-                            for(int i=0; i<N_SLICE_SLIDERS; i++){
-                                m_numberEdits[i] = new NumberEdit();
-                                m_numberEdits[i]->displayInteger(SLICE_SLIDER_INIT);
-                                freeSliceBox->addWidget(m_numberEdits[i]);
+                        QVBoxLayout* freeSliceWrapper = new QVBoxLayout();{
+                            freeSliceWrapper->addWidget(new QLabel("The is free form; play with the mouse!"));
+
+                            QHBoxLayout* freeSliceBox = new QHBoxLayout();{
+
+
+                                QVBoxLayout* freeSliderLabelBox = new QVBoxLayout();
+                                for(int i=0; i<N_SLICE_SLIDERS; i++){
+                                    freeSliderLabelBox->addWidget(new QLabel(g_slice_slider_captions[i]));
+                                }
+
+                                QVBoxLayout* actualFreeSliders = new QVBoxLayout();
+                                m_numberEdits = new NumberEdit*[N_SLICE_SLIDERS];
+                                for(int i=0; i<N_SLICE_SLIDERS; i++){
+                                    m_numberEdits[i] = new NumberEdit();
+                                    m_numberEdits[i]->displayInteger(SLICE_SLIDER_INIT);
+                                    actualFreeSliders->addWidget(m_numberEdits[i]);
+                                }
+
+                                freeSliceBox->addLayout(freeSliderLabelBox);
+                                freeSliceBox->addLayout(actualFreeSliders);
                             }
-
-
+                            freeSliceWrapper->addLayout(freeSliceBox);
 
                         }
+
                         QWidget* freeSliceWidget = new QWidget();
-                        freeSliceWidget->setLayout(freeSliceBox);
+                        freeSliceWidget->setLayout(freeSliceWrapper);
                         m_sliceTab->addTab(freeSliceWidget, "Free");
 
                         m_sliceTab->setCurrentIndex(FREE_SLICING);
+#endif
 
                     }
                     sliceBox->addWidget(m_sliceTab);
@@ -390,22 +406,47 @@ void Window::renderSlice(int value)
 
         orientation = FREE_FORM;
 
+        m_proNumberEdits[0]->displayFloat(dx);
+        m_proNumberEdits[1]->displayFloat(dy);
+        m_proNumberEdits[2]->displayFloat(dz);
+
+        m_proNumberEdits[3]->displayFloat(theta);
+        m_proNumberEdits[4]->displayFloat(phi);
+        m_proNumberEdits[5]->displayFloat(psi);
+
     }else if(m_sliceTab->currentIndex() == 2){
-        Vector4 origin(.5, .5, .5, 1);
+//        Vector4 origin(.5, .5, .5, 1);
+
+        Vector4 origin = Vector4::zero();
 
         Vector4 center = origin - (origin - m_point).dot(m_normal) * m_normal;
 
         cerr << center << endl;
 
+        center -= origin;
 
         dx = center.x;
         dy = center.y;
         dz = center.z;
 
         // idea: Just take the dot products
-        theta = acos(m_normal.x);
-        phi = acos(m_normal.y);
-        psi = acos(m_normal.z);
+//        theta = acos(m_normal.x);
+//        phi = acos(m_normal.y);
+//        psi = acos(m_normal.z);
+
+        phi = acos(m_normal.x);
+        psi = acos(m_normal.y);
+        theta = acos(m_normal.z);
+
+        #ifdef FREE_SLICING_ENABLED
+        m_numberEdits[0]->displayFloat(dx);
+        m_numberEdits[1]->displayFloat(dy);
+        m_numberEdits[2]->displayFloat(dz);
+
+        m_numberEdits[3]->displayFloat(theta);
+        m_numberEdits[4]->displayFloat(phi);
+        m_numberEdits[5]->displayFloat(psi);
+        #endif
 
 
 //        cout << "dx: " << dx << ", dy: " << dy << ", dz: " << dz << ", theta: " << theta << ", phi: " << phi << ", psi: " << psi << endl;
@@ -415,21 +456,9 @@ void Window::renderSlice(int value)
         assert(false);
     }
 
-    m_numberEdits[0]->displayFloat(dx);
-    m_numberEdits[1]->displayFloat(dy);
-    m_numberEdits[2]->displayFloat(dz);
 
-    m_numberEdits[3]->displayFloat(theta);
-    m_numberEdits[4]->displayFloat(phi);
-    m_numberEdits[5]->displayFloat(psi);
 
-    m_proNumberEdits[0]->displayFloat(dx);
-    m_proNumberEdits[1]->displayFloat(dy);
-    m_proNumberEdits[2]->displayFloat(dz);
 
-    m_proNumberEdits[3]->displayFloat(theta);
-    m_proNumberEdits[4]->displayFloat(phi);
-    m_proNumberEdits[5]->displayFloat(psi);
 
 
     int height = SLICE_EDGELENGTH;

@@ -1,6 +1,8 @@
 #ifndef PARAMS_H
 #define PARAMS_H
 
+#define FREE_SLICING_ENABLED
+
 #include "output.h"
 
 #include <iostream>
