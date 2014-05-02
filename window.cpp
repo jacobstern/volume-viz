@@ -415,9 +415,9 @@ void Window::renderSlice(int value)
         m_proNumberEdits[5]->displayFloat(psi);
 
     }else if(m_sliceTab->currentIndex() == 2){
-//        Vector4 origin(.5, .5, .5, 1);
+        Vector4 origin(.5, .5, .5, 1);
 
-        Vector4 origin = Vector4::zero();
+//        Vector4 origin = Vector4::zero();
 
         Vector4 center = origin - (origin - m_point).dot(m_normal) * m_normal;
 
@@ -430,13 +430,9 @@ void Window::renderSlice(int value)
         dz = center.z;
 
         // idea: Just take the dot products
-//        theta = acos(m_normal.x);
-//        phi = acos(m_normal.y);
-//        psi = acos(m_normal.z);
-
-        phi = acos(m_normal.x);
-        psi = acos(m_normal.y);
-        theta = acos(m_normal.z);
+        theta = acos(m_normal.x);
+        phi = acos(m_normal.y);
+        psi = acos(m_normal.z);
 
         #ifdef FREE_SLICING_ENABLED
         m_numberEdits[0]->displayFloat(dx);
