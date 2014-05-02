@@ -78,9 +78,6 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
                               BufferParameters bufferParameters,
                               canonicalOrientation orientation)
 {
-    cout << "SliceWidget::renderSlice: " << sliceParameters << endl;
-
-
     if(bufferParameters.height*bufferParameters.width != m_sizeY*m_sizeX){
         cout << "allocating new slice buffer" << endl;
         delete[] m_sliceBuffer;
@@ -107,7 +104,6 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
        invoke_slice_kernel(m_sliceBuffer, bufferParameters, sliceParameters, orientation);
     }
 
-    cout << "Updating slice image" << endl;
     delete m_sliceImage;
     m_sliceImage = new QImage(bufferParameters.width, bufferParameters.height, QImage::Format_RGB32);
     BGRA* bits = new BGRA[bufferParameters.width*bufferParameters.height];
@@ -121,8 +117,6 @@ void SliceWidget::renderSlice(SliceParameters sliceParameters,
     }
     memcpy(m_sliceImage->bits(), bits, bufferParameters.width*bufferParameters.height*sizeof(BGRA));
     delete[] bits;
-    cout << "Slice image updated" << endl;
-
 }
 
 void SliceWidget::paintEvent(QPaintEvent *)

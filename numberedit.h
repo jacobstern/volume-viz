@@ -14,7 +14,7 @@ signals:
     
 public slots:
     void displayInteger(int num);
-    
+    void displayFloat(float num);
 };
 
 #endif // NUMBEREDIT_H

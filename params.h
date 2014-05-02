@@ -26,6 +26,7 @@
 #define SLICE_SLIDER_MAX 100
 #define SLICE_SLIDER_INIT 0
 
+typedef enum{CANONICAL_SLICING, PRO_SLICING, FREE_SLICING, NUM_SLICING} sliceMode;
 
 static const char *g_texture_names[N_DEFAULT_TEXTURES] = {"MRI head",
                                                   "engine",

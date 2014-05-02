@@ -129,7 +129,7 @@ Window::Window()
                                     NumberEdit* canonicalEdit = new NumberEdit();
                                     canonicalEdit->displayInteger(SLICE_SLIDER_INIT);
                                     canonicalWrapperBox->addWidget(canonicalEdit);
-                                    canonicalEdit->setFixedWidth(50);
+                                    canonicalEdit->setFixedWidth(80);
                                     connect(m_canonicalSliceSlider, SIGNAL(valueChanged(int)), canonicalEdit, SLOT(displayInteger(int)));
 
 
@@ -151,6 +151,7 @@ Window::Window()
                                 sliceSliderBox->addWidget(sliceSliderLabel);
                                 m_sliceSliders = new QSlider*[N_SLICE_SLIDERS];
 
+
                                 QVBoxLayout* actualSliders = new QVBoxLayout();{
                                     for(int i=0; i<N_SLICE_SLIDERS; i++){
                                         QHBoxLayout* sliderBox = new QHBoxLayout();{
@@ -169,17 +170,18 @@ Window::Window()
                                 actualSliderWidget->setLayout(actualSliders);
                                 sliceSliderSubBox->addWidget(actualSliderWidget, 0, 0, 1, 12);
 
+                                m_proNumberEdits = new NumberEdit*[N_SLICE_SLIDERS];
                                 QVBoxLayout* sliderDisplays = new QVBoxLayout();{
                                     for(int i=0; i<N_SLICE_SLIDERS; i++){
-                                            NumberEdit* numberEdit = new NumberEdit();
-                                            sliderDisplays->addWidget(numberEdit);
-                                            numberEdit->displayInteger(SLICE_SLIDER_INIT);
-                                            connect(m_sliceSliders[i], SIGNAL(valueChanged(int)), numberEdit, SLOT(displayInteger(int)));
+                                        m_proNumberEdits[i] = new NumberEdit();
+                                        sliderDisplays->addWidget(m_proNumberEdits[i]);
+                                        m_proNumberEdits[i]->displayInteger(SLICE_SLIDER_INIT);
+//                                      connect(m_sliceSliders[i], SIGNAL(valueChanged(int)), numberEdit, SLOT(displayInteger(int)));
                                     }
                                 }
                                 QWidget* displayWidget = new QWidget();
                                 displayWidget->setLayout(sliderDisplays);
-                                displayWidget->setFixedWidth(50);
+                                displayWidget->setFixedWidth(80);
                                 sliceSliderSubBox->addWidget(displayWidget, 0, 12, 1, 2);
                             }
 
@@ -192,14 +194,22 @@ Window::Window()
 
 
                         QVBoxLayout* freeSliceBox = new QVBoxLayout();{
-                            freeSliceBox->addWidget(new QLabel("Please click and drag\nwith the left mouse button\n\n \
-                                                               Click and drag the mouse wheel to move the plane "));
+                            freeSliceBox->addWidget(new QLabel("The is free form; play with the mouse!"));
+                            m_numberEdits = new NumberEdit*[N_SLICE_SLIDERS];
+                            for(int i=0; i<N_SLICE_SLIDERS; i++){
+                                m_numberEdits[i] = new NumberEdit();
+                                m_numberEdits[i]->displayInteger(SLICE_SLIDER_INIT);
+                                freeSliceBox->addWidget(m_numberEdits[i]);
+                            }
+
+
+
                         }
                         QWidget* freeSliceWidget = new QWidget();
                         freeSliceWidget->setLayout(freeSliceBox);
                         m_sliceTab->addTab(freeSliceWidget, "Free");
 
-                        m_sliceTab->setCurrentIndex(1);
+                        m_sliceTab->setCurrentIndex(FREE_SLICING);
 
                     }
                     sliceBox->addWidget(m_sliceTab);
@@ -381,22 +391,46 @@ void Window::renderSlice(int value)
         orientation = FREE_FORM;
 
     }else if(m_sliceTab->currentIndex() == 2){
+        Vector4 origin(.5, .5, .5, 1);
 
-        dx = m_point.x;
-        dy = m_point.y;
-        dz = m_point.z;
+        Vector4 center = origin - (origin - m_point).dot(m_normal) * m_normal;
+
+        cerr << center << endl;
+
+
+        dx = center.x;
+        dy = center.y;
+        dz = center.z;
 
         // idea: Just take the dot products
-//        theta = acos(m_normal.x);
-//        phi = acos(m_normal.y);
-//        psi = acos(m_normal.z);
+        theta = acos(m_normal.x);
+        phi = acos(m_normal.y);
+        psi = acos(m_normal.z);
 
-        cout << "dx: " << dx << ", dy: " << dy << ", dz: " << dz << ", theta: " << theta << ", phi: " << phi << ", psi: " << psi << endl;
+
+//        cout << "dx: " << dx << ", dy: " << dy << ", dz: " << dz << ", theta: " << theta << ", phi: " << phi << ", psi: " << psi << endl;
 
     }else{
         cerr << "ERROR: Invalid index for slice tab" << endl;
         assert(false);
     }
+
+    m_numberEdits[0]->displayFloat(dx);
+    m_numberEdits[1]->displayFloat(dy);
+    m_numberEdits[2]->displayFloat(dz);
+
+    m_numberEdits[3]->displayFloat(theta);
+    m_numberEdits[4]->displayFloat(phi);
+    m_numberEdits[5]->displayFloat(psi);
+
+    m_proNumberEdits[0]->displayFloat(dx);
+    m_proNumberEdits[1]->displayFloat(dy);
+    m_proNumberEdits[2]->displayFloat(dz);
+
+    m_proNumberEdits[3]->displayFloat(theta);
+    m_proNumberEdits[4]->displayFloat(phi);
+    m_proNumberEdits[5]->displayFloat(psi);
+
 
     int height = SLICE_EDGELENGTH;
     int width = SLICE_EDGELENGTH;
@@ -412,11 +446,11 @@ void Window::updateSlicePlane(Vector4 cutPoint, Vector4 cutNormal)
 {
 //    cout << "Window::updateSlicePlane: " << cutPoint << ", " << cutNormal << endl;
 
-//    m_point = cutPoint;
-//    m_normal = cutNormal;
+    m_point = cutPoint;
+    m_normal = cutNormal;
 
 //    m_sliceTab->setCurrentIndex(2);
-//    renderSlice(0);
+    renderSlice(0);
 }
 
 

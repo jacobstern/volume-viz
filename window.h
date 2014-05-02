@@ -46,6 +46,8 @@
 #include "CS123Common.h"
 #include "cs123math/CS123Algebra.h"
 
+#include "numberedit.h"
+
 // ###########################################
 #include <QLineEdit>
 #include <QtGui>
@@ -129,6 +131,9 @@ private:
     QGroupBox* m_slicingBox;
     QRadioButton ** m_slicingButtons;
     QPushButton *m_invertCrossSection;
+
+    NumberEdit** m_proNumberEdits;
+    NumberEdit** m_numberEdits;
 
 
 
